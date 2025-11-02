@@ -6,3 +6,7 @@ backend/.env
 __pycache__/
 *.pyc
 backend/.env
+
+/.idea/
+/*.iml
+/out/
