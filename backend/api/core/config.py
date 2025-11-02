@@ -1,5 +1,16 @@
 from typing import Optional
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except Exception:
+    # Fallback for environments with older pydantic or missing pydantic_settings
+    try:
+        from pydantic import BaseSettings
+    except Exception:
+        # Minimal shim if BaseSettings is not available; Settings will behave like a plain object
+        class BaseSettings(object):
+            def __init__(self, **kwargs):
+                for k, v in kwargs.items():
+                    setattr(self, k, v)
 
 
 class Settings(BaseSettings):
