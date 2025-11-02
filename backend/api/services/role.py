@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repositories.role import RoleRepository
-from ...core.models import Role
+from api.core.models import Role
 
 
 class RoleService:

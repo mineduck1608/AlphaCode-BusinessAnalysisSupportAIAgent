@@ -1,8 +1,25 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import sys
+from pathlib import Path
 
-from backend.api.routers import conversation  # import routers
-from backend.api.routers import conversation_agent  # import routers
+# Add backend directory to Python path
+backend_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(backend_dir))
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import uuid
+import logging
+from api.websocket.agents.chat_agent import ChatAgent
+from api.websocket.utils.session import SessionManager
+from api.websocket.utils.message import Message
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AlphaCode API", version="1.0.0")
 
@@ -14,10 +31,108 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# register routers
-app.include_router(conversation.router, prefix="/conversation", tags=["conversation"])
-app.include_router(conversation_agent.router, prefix="/conversation-agent", tags=["conversation-agent"])
+# Initialize WebSocket session manager
+session_manager = SessionManager()
+
+# register routers - Temporarily disabled due to import issues
+# app.include_router(conversation.router, prefix="/conversation", tags=["conversation"])
+# app.include_router(conversation_agent.router, prefix="/conversation-agent", tags=["conversation-agent"])
 
 @app.get("/health")
 def healthcheck():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "active_ws_sessions": session_manager.get_active_count()
+    }
+
+@app.get("/ws/stats")
+async def get_ws_stats():
+    """Get WebSocket server statistics."""
+    return JSONResponse({
+        "active_sessions": session_manager.get_active_count(),
+    })
+
+@app.websocket("/ws/chat")
+async def websocket_chat_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for chat communication.
+    
+    Each connection creates a new session with its own agent instance.
+    Messages are processed by the agent and responses are pushed back to the client.
+    """
+    session_id = str(uuid.uuid4())
+    agent = None
+    
+    try:
+        # Accept WebSocket connection
+        await websocket.accept()
+        logger.info(f"New WebSocket connection: {session_id}")
+        
+        # Create agent instance for this session
+        agent = ChatAgent(session_id)
+        
+        # Register session
+        session_manager.register(session_id, websocket, agent)
+        
+        # Send welcome message
+        welcome_msg = Message.system(
+            f"Welcome! Your session ID is {session_id[:8]}... Type /help for commands."
+        )
+        await websocket.send_text(welcome_msg.to_json())
+        
+        # Main message loop
+        while True:
+            # Receive message from client
+            raw_message = await websocket.receive_text()
+            logger.info(f"[{session_id[:8]}] Received: {raw_message[:100]}")
+            
+            # Parse message
+            message = Message.from_json(raw_message)
+            
+            # Handle empty messages
+            if not message.content.strip():
+                continue
+            
+            try:
+                # Send typing indicator (optional)
+                typing_msg = Message.typing(True)
+                await websocket.send_text(typing_msg.to_json())
+                
+                # Process message with agent
+                response_text = await agent.handle_message(message.content)
+                
+                # Send response
+                response_msg = Message.text(response_text)
+                await websocket.send_text(response_msg.to_json())
+                
+                logger.info(f"[{session_id[:8]}] Sent response: {response_text[:100]}")
+                
+            except Exception as e:
+                logger.error(f"Error processing message for {session_id}: {e}", exc_info=True)
+                error_msg = Message.error(
+                    f"Failed to process message: {str(e)}",
+                    error_code="PROCESSING_ERROR"
+                )
+                await websocket.send_text(error_msg.to_json())
+    
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected: {session_id}")
+    
+    except Exception as e:
+        logger.error(f"Unexpected error for session {session_id}: {e}", exc_info=True)
+    
+    finally:
+        # Clean up session
+        session_manager.unregister(session_id)
+        logger.info(f"Session cleaned up: {session_id}")
+
+# Startup and shutdown events
+@app.on_event("startup")
+async def startup_event():
+    """Log server startup."""
+    logger.info("AlphaCode API with WebSocket support started")
+    logger.info("WebSocket endpoint: ws://localhost:8000/ws/chat")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Log server shutdown."""
+    logger.info("AlphaCode API shutting down")

@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from ...core.models import Prompt
+from api.core.models import Prompt
 
 class PromptRepository:
     # CREATE

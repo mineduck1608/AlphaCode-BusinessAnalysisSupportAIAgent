@@ -1,4 +1,5 @@
-from pydantic import BaseSettings
+from typing import Optional
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -7,7 +8,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "alphacode"
-    DATABASE_URL: str | None = None
+    DATABASE_URL: Optional[str] = None
 
     # Security
     SECRET_KEY: str = "your-secret-key"
