@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 
 from api.repositories.message import MessageRepository
-from core.models import Message
+from api.core.models import Message
 from services.mcp_vector.src.models.db import session
 
 

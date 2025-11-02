@@ -3,7 +3,7 @@ from sqlalchemy import and_
 from typing import List, Optional
 from datetime import datetime
 
-from core.models import SharedConversation
+from api.core.models import SharedConversation
 
 
 class SharedConversationRepository:

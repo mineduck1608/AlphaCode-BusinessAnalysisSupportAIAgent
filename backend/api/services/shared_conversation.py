@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from api.repositories.shared_conversation import SharedConversationRepository
-from core.models import SharedConversation
+from api.core.models import SharedConversation
 from services.mcp_vector.src.models.db import session
 
 from typing import List, Optional

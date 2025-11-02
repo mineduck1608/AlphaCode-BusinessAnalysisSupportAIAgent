@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from ..services.role import RoleService
-from ...core.db import get_session
-from ...core.models import Role # Giả sử Role là một model/schema cho response
+from api.core.db import get_session
+from api.core.models import Role # Giả sử Role là một model/schema cho response
 
 
 router = APIRouter(prefix="/roles", tags=["roles"])

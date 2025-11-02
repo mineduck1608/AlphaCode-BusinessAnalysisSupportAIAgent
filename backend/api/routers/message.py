@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional, Dict, Any
 
 from api.services.message import MessageService
-from core.models import Message
+from api.core.models import Message
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 

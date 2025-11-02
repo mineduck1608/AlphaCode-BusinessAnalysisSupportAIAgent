@@ -10,6 +10,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uuid
 import logging
+
+from api.routers import conversation
+from api.routers import conversation_agent
 from api.websocket.agents.chat_agent import ChatAgent
 from api.websocket.utils.session import SessionManager
 from api.websocket.utils.message import Message
@@ -34,9 +37,9 @@ app.add_middleware(
 # Initialize WebSocket session manager
 session_manager = SessionManager()
 
-# register routers - Temporarily disabled due to import issues
-# app.include_router(conversation.router, prefix="/conversation", tags=["conversation"])
-# app.include_router(conversation_agent.router, prefix="/conversation-agent", tags=["conversation-agent"])
+# register routers
+app.include_router(conversation.router, prefix="/conversation", tags=["conversation"])
+app.include_router(conversation_agent.router, prefix="/conversation-agent", tags=["conversation-agent"])
 
 @app.get("/health")
 def healthcheck():

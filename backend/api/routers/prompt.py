@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from ..services.prompt import PromptService
-from ...core.db import get_session
-from ...core.models import Prompt # Giả sử Prompt là một model/schema cho response
+from api.core.db import get_session
+from api.core.models import Prompt # Giả sử Prompt là một model/schema cho response
 
 
 router = APIRouter(prefix="/prompts", tags=["prompts"])

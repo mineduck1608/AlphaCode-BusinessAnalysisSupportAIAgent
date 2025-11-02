@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
 
 from api.services.shared_conversation import SharedConversationService
-from core.models import SharedConversation
+from api.core.models import SharedConversation
 
 router = APIRouter(prefix="/shared-conversations", tags=["shared_conversations"])
 

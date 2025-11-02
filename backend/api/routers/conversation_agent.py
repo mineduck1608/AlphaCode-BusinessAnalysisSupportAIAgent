@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from api.services.conversation_agent import ConversationAgentService
-from core.db import get_session
-from core.models import ConversationAgent
+from api.core.db import get_session
+from api.core.models import ConversationAgent
 
 router = APIRouter(prefix="/conversation-agents", tags=["conversation-agents"])
 service = ConversationAgentService()
