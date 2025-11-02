@@ -60,20 +60,19 @@ const AppSidebar: React.FC = () => {
           {isExpanded || isHovered || isMobileOpen ? (
             <div className="flex items-center gap-3">
               <Image 
-                src="/logo2.png" 
+                src="/logo1.png" 
                 alt="AlphaCode Logo" 
-                width={32} 
-                height={32}
-                className="w-8 h-8 object-contain"
+                width={50} 
+                height={50}
+                className="w-30 h-30 object-contain"
               />
-              <span className="font-bold text-xl text-foreground">AlphaCode</span>
             </div>
           ) : (
             <Image 
-              src="/logo2.png" 
+              src="/logo1.png" 
               alt="AlphaCode Logo" 
-              width={32} 
-              height={32}
+              width={50} 
+              height={50}
               className="w-8 h-8 object-contain"
             />
           )}

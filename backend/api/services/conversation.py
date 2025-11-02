@@ -41,6 +41,13 @@ class ConversationService:
         limit: int = 100
     ) -> List[Conversation]:
         return await self.repository.list_conversations(db, skip=skip, limit=limit)
+    
+    async def get_conversations_by_user_id(
+        self,
+        db: AsyncSession,
+        user_id: int
+    ) -> List[Conversation]:
+        return await self.repository.get_conversation_by_user_id(db, user_id)
 
     async def update_conversation(
         self,
