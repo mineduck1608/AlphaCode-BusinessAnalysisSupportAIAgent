@@ -1,8 +1,8 @@
+// lib/chatMockAPI.ts
 export async function mockSendMessage(text: string): Promise<string> {
-  // Giả lập độ trễ 1.5 giây
-  await new Promise((r) => setTimeout(r, 1500));
+  // simulate processing delay
+  await new Promise((r) => setTimeout(r, 1200));
 
-  // Trả về phản hồi mẫu
   const replies = [
     "Interesting! Tell me more about that.",
     "Here’s something to think about 🤔",
