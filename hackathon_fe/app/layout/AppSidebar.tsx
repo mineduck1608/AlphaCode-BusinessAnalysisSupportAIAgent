@@ -3,8 +3,8 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
-import { BoxIconLine } from "../icons/index";
-import { cn } from "@/lib/utils";
+import { BoxIconLine } from "@/app/icon/index";
+import { cn } from "@/app/lib/utils";
 
 type NavItem = {
   name: string;
