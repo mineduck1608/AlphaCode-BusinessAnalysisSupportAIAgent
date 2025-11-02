@@ -1,6 +1,8 @@
 "use client";
+  
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import { BoxIconLine } from "@/app/icon/index";
@@ -54,18 +56,26 @@ const AppSidebar: React.FC = () => {
     >
       {/* Logo */}
       <div className="h-16 flex items-center justify-center border-b border-border px-4">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-3">
           {isExpanded || isHovered || isMobileOpen ? (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">D</span>
-              </div>
-              <span className="font-bold text-lg text-foreground">Dashboard</span>
+            <div className="flex items-center gap-3">
+              <Image 
+                src="/logo2.png" 
+                alt="AlphaCode Logo" 
+                width={32} 
+                height={32}
+                className="w-8 h-8 object-contain"
+              />
+              <span className="font-bold text-xl text-foreground">AlphaCode</span>
             </div>
           ) : (
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">D</span>
-            </div>
+            <Image 
+              src="/logo2.png" 
+              alt="AlphaCode Logo" 
+              width={32} 
+              height={32}
+              className="w-8 h-8 object-contain"
+            />
           )}
         </Link>
       </div>

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import React from "react";
+import Image from "next/image";
 import { BoxIconLine, ArrowUpIcon } from "@/app/icon/index";
 
 export const metadata: Metadata = {
-  title: "Welcome - Dashboard",
-  description: "Modern dashboard application",
+  title: "Welcome - AlphaCode",
+  description: "AI-powered coding assistant to help you write better code faster",
 };
 
 export default function WelcomePage() {
@@ -14,19 +15,25 @@ export default function WelcomePage() {
       <div className="max-w-4xl mx-auto text-center space-y-8 px-4">
         {/* Icon */}
         <div className="flex justify-center">
-          <div className="w-24 h-24 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
-            <BoxIconLine className="w-12 h-12 text-primary-foreground" />
+          <div className="w-32 h-32 rounded-2xl flex items-center justify-center">
+            <Image 
+              src="/logo2.png" 
+              alt="AlphaCode Logo" 
+              width={128} 
+              height={128}
+              className="w-32 h-32 object-contain drop-shadow-2xl"
+            />
           </div>
         </div>
 
         {/* Title */}
         <div className="space-y-4">
           <h1 className="text-5xl md:text-6xl font-bold text-foreground">
-            Welcome to Dashboard
+            Welcome to AlphaCode
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A modern, minimal dashboard designed with simplicity and elegance.
-            Built with Next.js, Tailwind CSS, and shadcn/ui.
+            An AI-powered coding assistant designed to help you write better code faster.
+            Built with Next.js, TypeScript, and cutting-edge AI technology.
           </p>
         </div>
 

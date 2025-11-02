@@ -1,13 +1,24 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Plus, MessageSquare, Settings, LogOut, User } from "lucide-react";
 
 export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => void; userEmail?: string | undefined }) {
   return (
     <div className="w-72 bg-[#0f1419] flex flex-col border-r border-blue-900/20">
-      {/* Header với gradient */}
+      {/* Header với gradient và logo */}
       <div className="p-4 border-b border-blue-900/20 bg-gradient-to-r from-blue-600/10 to-purple-600/10">
+        <div className="flex items-center gap-2 mb-3">
+          <Image 
+            src="/logo2.png" 
+            alt="AlphaCode Logo" 
+            width={28} 
+            height={28}
+            className="w-7 h-7 object-contain"
+          />
+          <span className="font-bold text-lg text-white">AlphaCode</span>
+        </div>
         <button className="w-full flex items-center justify-center gap-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 rounded-lg hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20">
           <Plus size={18} /> New Chat
         </button>
