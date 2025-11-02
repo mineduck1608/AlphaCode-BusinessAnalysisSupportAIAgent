@@ -2,7 +2,36 @@ import axiosInstance from '@/app/lib/axios';
 import { ConversationAgent } from '@/app/types/conversationAgent';
 
 export const conversationAgentApi = {
-  // Lấy tất cả agents trong một conversation
+  // POST /conversation-agents/{conversation_id}/agents - Create Conversation Agent
+  create: async (conversationId: string, data: Partial<ConversationAgent>): Promise<ConversationAgent> => {
+    const response = await axiosInstance.post<ConversationAgent>(
+      `/conversation-agents/${conversationId}/agents`,
+      data
+    );
+    return response.data;
+  },
+
+  // GET /conversation-agents/{ca_id} - Get Conversation Agent
+  getById: async (caId: string): Promise<ConversationAgent> => {
+    const response = await axiosInstance.get<ConversationAgent>(`/conversation-agents/${caId}`);
+    return response.data;
+  },
+
+  // PUT /conversation-agents/{ca_id} - Update Conversation Agent
+  update: async (caId: string, data: Partial<ConversationAgent>): Promise<ConversationAgent> => {
+    const response = await axiosInstance.put<ConversationAgent>(
+      `/conversation-agents/${caId}`,
+      data
+    );
+    return response.data;
+  },
+
+  // DELETE /conversation-agents/{ca_id} - Delete Conversation Agent
+  delete: async (caId: string): Promise<void> => {
+    await axiosInstance.delete(`/conversation-agents/${caId}`);
+  },
+
+  // GET /conversation-agents/conversation/{conversation_id} - List By Conversation
   getByConversationId: async (conversationId: string): Promise<ConversationAgent[]> => {
     const response = await axiosInstance.get<ConversationAgent[]>(
       `/conversation-agents/conversation/${conversationId}`
@@ -10,42 +39,26 @@ export const conversationAgentApi = {
     return response.data;
   },
 
-  // Lấy conversation agent theo ID
-  getById: async (id: string): Promise<ConversationAgent> => {
-    const response = await axiosInstance.get<ConversationAgent>(`/conversation-agents/${id}`);
-    return response.data;
-  },
-
-  // Thêm agent vào conversation
-  create: async (data: Partial<ConversationAgent>): Promise<ConversationAgent> => {
-    const response = await axiosInstance.post<ConversationAgent>('/conversation-agents', data);
-    return response.data;
-  },
-
-  // Cập nhật conversation agent
-  update: async (id: string, data: Partial<ConversationAgent>): Promise<ConversationAgent> => {
-    const response = await axiosInstance.put<ConversationAgent>(`/conversation-agents/${id}`, data);
-    return response.data;
-  },
-
-  // Xóa agent khỏi conversation
-  delete: async (id: string): Promise<void> => {
-    await axiosInstance.delete(`/conversation-agents/${id}`);
-  },
-
-  // Set active agent cho conversation
-  setActive: async (conversationId: string, agentId: string): Promise<ConversationAgent> => {
-    const response = await axiosInstance.post<ConversationAgent>(
-      `/conversation-agents/set-active`,
-      { conversationId, agentId }
+  // GET /conversation-agents/agent/{agent_id} - List By Agent
+  getByAgentId: async (agentId: string): Promise<ConversationAgent[]> => {
+    const response = await axiosInstance.get<ConversationAgent[]>(
+      `/conversation-agents/agent/${agentId}`
     );
     return response.data;
   },
 
-  // Lấy active agent của conversation
-  getActive: async (conversationId: string): Promise<ConversationAgent | null> => {
-    const response = await axiosInstance.get<ConversationAgent | null>(
+  // GET /conversation-agents/conversation/{conversation_id}/active - List Active Agents
+  getActiveAgents: async (conversationId: string): Promise<ConversationAgent[]> => {
+    const response = await axiosInstance.get<ConversationAgent[]>(
       `/conversation-agents/conversation/${conversationId}/active`
+    );
+    return response.data;
+  },
+
+  // POST /conversation-agents/conversation/{conversation_id}/switch/{agent_id} - Switch Active Agent
+  switchActiveAgent: async (conversationId: string, agentId: string): Promise<ConversationAgent> => {
+    const response = await axiosInstance.post<ConversationAgent>(
+      `/conversation-agents/conversation/${conversationId}/switch/${agentId}`
     );
     return response.data;
   },
