@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState } from "react";
-import LoginForm from "@/components/auth/LoginForm";
+import LoginForm from "@/app/components/auth/LoginForm";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/authMock";
+import { getCurrentUser } from "@/app/lib/authMock";
 
 export default function LoginPage() {
   const router = useRouter();

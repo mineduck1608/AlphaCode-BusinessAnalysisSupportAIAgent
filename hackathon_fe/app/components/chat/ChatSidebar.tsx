@@ -1,4 +1,3 @@
-// components/chat/ChatSidebar.tsx
 "use client";
 
 import React from "react";

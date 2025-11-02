@@ -1,8 +1,10 @@
 "use client";
 
 import { useSidebar } from "@/app/context/SidebarContext";
+import AppFooter from "@/app/layout/AppFooter";
 import AppHeader from "@/app/layout/AppHeader";
 import AppSidebar from "@/app/layout/AppSidebar";
+import Backdrop from "@/app/layout/Backdrop";
 import React from "react";
 
 
@@ -24,7 +26,7 @@ export default function LayoutWrapper({
     <div className="min-h-screen flex">
       {/* Sidebar and Backdrop */}
       <AppSidebar />
-      {/* <Backdrop /> */}
+      <Backdrop />
       
       {/* Main Content Area */}
       <div
@@ -39,7 +41,7 @@ export default function LayoutWrapper({
         </main>
         
         {/* Footer */}
-        {/* <AppFooter /> */}
+        <AppFooter />
       </div>
     </div>
   );

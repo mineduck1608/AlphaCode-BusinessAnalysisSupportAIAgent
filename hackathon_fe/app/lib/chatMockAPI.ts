@@ -1,4 +1,3 @@
-// lib/chatMockAPI.ts
 export async function mockSendMessage(text: string): Promise<string> {
   // simulate processing delay
   await new Promise((r) => setTimeout(r, 1200));

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { mockLogin } from "@/lib/authMock";
+import { mockLogin } from "@/app/lib/authMock";
 
 export default function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
   const [email, setEmail] = useState("");

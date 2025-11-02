@@ -1,4 +1,3 @@
-// lib/authMock.ts
 export type User = { email: string; name?: string };
 
 const STORAGE_KEY = "chatgpt_clone_user";
