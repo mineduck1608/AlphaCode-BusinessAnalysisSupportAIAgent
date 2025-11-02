@@ -1,5 +1,2 @@
 google-generativeai
-requests
 python-dotenv
-PyYAML
-Jinja2
