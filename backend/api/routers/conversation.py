@@ -4,20 +4,20 @@ from typing import List, Optional
 
 from api.services.conversation import ConversationService
 from api.core.db import get_session
-from api.core.models import Conversation, ConversationAgent
+from api.core import schemas
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 service = ConversationService()
 
 
-@router.post("/", response_model=Conversation)
+@router.post("/", response_model=schemas.Conversation)
 async def create_conversation(
     name: str,
     user_id: int,
     is_shared: bool = False,
     summary: Optional[str] = None,
     db: AsyncSession = Depends(get_session)
-) -> Conversation:
+) -> schemas.Conversation:
     return await service.create_conversation(
         db,
         name=name,
@@ -27,34 +27,34 @@ async def create_conversation(
     )
 
 
-@router.get("/", response_model=List[Conversation])
+@router.get("/", response_model=List[schemas.Conversation])
 async def list_conversations(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_session)
-) -> List[Conversation]:
+) -> List[schemas.Conversation]:
     return await service.list_conversations(db, skip=skip, limit=limit)
 
 
-@router.get("/{conversation_id}", response_model=Conversation)
+@router.get("/{conversation_id}", response_model=schemas.Conversation)
 async def get_conversation(
     conversation_id: int,
     db: AsyncSession = Depends(get_session)
-) -> Conversation:
+) -> schemas.Conversation:
     convo = await service.get_conversation(db, conversation_id)
     if not convo:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return convo
 
 
-@router.put("/{conversation_id}", response_model=Conversation)
+@router.put("/{conversation_id}", response_model=schemas.Conversation)
 async def update_conversation(
     conversation_id: int,
     name: Optional[str] = None,
     is_shared: Optional[bool] = None,
     summary: Optional[str] = None,
     db: AsyncSession = Depends(get_session)
-) -> Conversation:
+) -> schemas.Conversation:
     convo = await service.update_conversation(
         db,
         conversation_id,
@@ -77,13 +77,13 @@ async def delete_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
 
-@router.post("/{conversation_id}/agents", response_model=ConversationAgent)
+@router.post("/{conversation_id}/agents", response_model=schemas.ConversationAgent)
 async def add_agent_to_conversation(
     conversation_id: int,
     agent_id: int,
     is_active: bool = True,
     db: AsyncSession = Depends(get_session)
-) -> ConversationAgent:
+) -> schemas.ConversationAgent:
     return await service.create_conversation_agent(
         db,
         conversation_id=conversation_id,
@@ -92,20 +92,20 @@ async def add_agent_to_conversation(
     )
 
 
-@router.get("/{conversation_id}/agents", response_model=List[ConversationAgent])
+@router.get("/{conversation_id}/agents", response_model=List[schemas.ConversationAgent])
 async def list_conversation_agents(
     conversation_id: int,
     db: AsyncSession = Depends(get_session)
-) -> List[ConversationAgent]:
+) -> List[schemas.ConversationAgent]:
     return await service.list_conversation_agents(db, conversation_id)
 
 
-@router.put("/agents/{ca_id}", response_model=ConversationAgent)
+@router.put("/agents/{ca_id}", response_model=schemas.ConversationAgent)
 async def update_conversation_agent(
     ca_id: int,
     is_active: bool,
     db: AsyncSession = Depends(get_session)
-) -> ConversationAgent:
+) -> schemas.ConversationAgent:
     ca = await service.update_conversation_agent(db, ca_id, is_active=is_active)
     if not ca:
         raise HTTPException(status_code=404, detail="Conversation Agent not found")

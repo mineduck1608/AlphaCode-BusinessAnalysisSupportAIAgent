@@ -4,13 +4,12 @@ from typing import List, Optional
 
 from ..services.agent import AgentService
 from api.core.db import get_session
-from api.core.models import Agent # Giả sử Agent là một model/schema cho response
-
+from api.core import schemas
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 service = AgentService()
 
-@router.post("/", response_model=Agent)
+@router.post("/", response_model=schemas.Agent)
 async def create_agent(
     name: str, 
     provider: str, 
@@ -18,7 +17,7 @@ async def create_agent(
     avatar_url: str, 
     prompt_id: int, 
     db: AsyncSession = Depends(get_session)
-) -> Agent:
+) -> schemas.Agent:
     return await service.create_agent(
         db, 
         name=name, 
@@ -28,22 +27,22 @@ async def create_agent(
         prompt_id=prompt_id
     )
 
-@router.get("/", response_model=List[Agent])
+@router.get("/", response_model=List[schemas.Agent])
 async def list_agents(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_session)
-) -> List[Agent]:
+) -> List[schemas.Agent]:
     return await service.list_agents(db, skip=skip, limit=limit)
 
-@router.get("/{agent_id}", response_model=Agent)
-async def get_agent(agent_id: int, db: AsyncSession = Depends(get_session)) -> Agent:
+@router.get("/{agent_id}", response_model=schemas.Agent)
+async def get_agent(agent_id: int, db: AsyncSession = Depends(get_session)) -> schemas.Agent:
     agent = await service.get_agent(db, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent
 
-@router.put("/{agent_id}", response_model=Agent)
+@router.put("/{agent_id}", response_model=schemas.Agent)
 async def update_agent(
     agent_id: int, 
     name: Optional[str] = None, 
@@ -53,7 +52,7 @@ async def update_agent(
     prompt_id: Optional[int] = None,
     status: Optional[int] = None,
     db: AsyncSession = Depends(get_session)
-) -> Agent:
+) -> schemas.Agent:
     agent = await service.update_agent(
         db, 
         agent_id, 

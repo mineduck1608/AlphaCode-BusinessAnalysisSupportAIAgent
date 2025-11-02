@@ -2,12 +2,12 @@ from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional, Dict, Any
 
 from api.services.message import MessageService
-from api.core.models import Message
+from api.core import schemas
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
-@router.post("/", response_model=Message, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.Message, status_code=status.HTTP_201_CREATED)
 def create_message(
         role: int,
         content: str,
@@ -41,7 +41,7 @@ def create_message(
         )
 
 
-@router.post("/user", response_model=Message, status_code=status.HTTP_201_CREATED)
+@router.post("/user", response_model=schemas.Message, status_code=status.HTTP_201_CREATED)
 def create_user_message(
         content: str,
         user_id: int,
@@ -67,7 +67,7 @@ def create_user_message(
         )
 
 
-@router.post("/agent", response_model=Message, status_code=status.HTTP_201_CREATED)
+@router.post("/agent", response_model=schemas.Message, status_code=status.HTTP_201_CREATED)
 def create_agent_message(
         content: str,
         agent_id: int,
@@ -93,7 +93,7 @@ def create_agent_message(
         )
 
 
-@router.get("/{message_id}", response_model=Message)
+@router.get("/{message_id}", response_model=schemas.Message)
 def get_message(message_id: int):
     """Lấy message theo ID"""
     service = MessageService()
@@ -107,8 +107,7 @@ def get_message(message_id: int):
     
     return message
 
-
-@router.get("/", response_model=List[Message])
+@router.get("/", response_model=List[schemas.Message])
 def get_all_messages(
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=1000)
@@ -118,7 +117,7 @@ def get_all_messages(
     return service.get_all_messages(skip=skip, limit=limit)
 
 
-@router.get("/conversation/{conversation_id}", response_model=List[Message])
+@router.get("/conversation/{conversation_id}", response_model=List[schemas.Message])
 def get_conversation_messages(
         conversation_id: int,
         skip: int = Query(0, ge=0),
@@ -137,7 +136,7 @@ def get_conversation_messages(
     return messages
 
 
-@router.get("/shared-conversation/{shared_conv_id}", response_model=List[Message])
+@router.get("/shared-conversation/{shared_conv_id}", response_model=List[schemas.Message])
 def get_shared_conversation_messages(
         shared_conv_id: int,
         skip: int = Query(0, ge=0),
@@ -156,7 +155,7 @@ def get_shared_conversation_messages(
     return messages
 
 
-@router.get("/user/{user_id}", response_model=List[Message])
+@router.get("/user/{user_id}", response_model=List[schemas.Message])
 def get_user_messages(user_id: int):
     """Lấy messages theo user_id"""
     service = MessageService()
@@ -171,7 +170,7 @@ def get_user_messages(user_id: int):
     return messages
 
 
-@router.get("/agent/{agent_id}", response_model=List[Message])
+@router.get("/agent/{agent_id}", response_model=List[schemas.Message])
 def get_agent_messages(agent_id: int):
     """Lấy messages theo agent_id"""
     service = MessageService()
@@ -186,7 +185,7 @@ def get_agent_messages(agent_id: int):
     return messages
 
 
-@router.put("/{message_id}", response_model=Message)
+@router.put("/{message_id}", response_model=schemas.Message)
 def update_message(
         message_id: int,
         content: Optional[str] = None,
@@ -218,7 +217,7 @@ def update_message(
     return message
 
 
-@router.patch("/{message_id}/reaction", response_model=Message)
+@router.patch("/{message_id}/reaction", response_model=schemas.Message)
 def update_message_reaction(message_id: int, reaction: str):
     """Cập nhật reaction cho message"""
     service = MessageService()
@@ -278,7 +277,7 @@ def delete_shared_conversation_messages(shared_conv_id: int):
     return {"message": "All messages for this shared conversation deleted successfully"}
 
 
-@router.get("/conversation/{conversation_id}/with-relations", response_model=List[Message])
+@router.get("/conversation/{conversation_id}/with-relations", response_model=List[schemas.Message])
 def get_conversation_with_relations(conversation_id: int):
     """Lấy messages với thông tin user và agent"""
     service = MessageService()

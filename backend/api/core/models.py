@@ -1,114 +1,109 @@
-from typing import List, Optional
-from pydantic import BaseModel
-import datetime
+"""SQLAlchemy ORM models for database tables."""
 
-# ----------------- Base Schemas -----------------
-class Prompt(BaseModel):
-    id: int
-    name: str
-    content: str
-    created_at: datetime.datetime
-    status: int
-    last_updated: Optional[datetime.datetime]
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, ARRAY, Float
+from sqlalchemy.orm import relationship
+from datetime import datetime
 
-    class Config:
-        orm_mode = True
+from .db import Base
 
 
-class Role(BaseModel):
-    id: int
-    name: str
-    created_at: datetime.datetime
-    status: int
-    last_updated: Optional[datetime.datetime]
+class Prompt(Base):
+    __tablename__ = "prompt"
 
-    class Config:
-        orm_mode = True
-
-
-class Agent(BaseModel):
-    id: int
-    name: str
-    provider: str
-    model: str
-    avatar_url: str
-    created_at: datetime.datetime
-    status: int
-    prompt_id: int
-    last_updated: Optional[datetime.datetime]
-
-    class Config:
-        orm_mode = True
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    last_updated = Column(DateTime, nullable=True)
 
 
-class User(BaseModel):
-    id: int
-    email: str
-    role_id: int
-    created_at: datetime.datetime
-    status: int
-    last_updated: Optional[datetime.datetime]
+class Role(Base):
+    __tablename__ = "role"
 
-    class Config:
-        orm_mode = True
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    last_updated = Column(DateTime, nullable=True)
 
 
-class Conversation(BaseModel):
-    id: int
-    name: str
-    user_id: int
-    created_at: datetime.datetime
-    status: int
-    is_shared: bool
-    share_token: str
-    last_updated: Optional[datetime.datetime]
-    summary: Optional[str]
-    summary_embedding: Optional[List[float]]
+class Agent(Base):
+    __tablename__ = "agent"
 
-    class Config:
-        orm_mode = True
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    provider = Column(String, nullable=False)
+    model = Column(String, nullable=False)
+    avatar_url = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    prompt_id = Column(Integer, ForeignKey("prompts.id"))
+    last_updated = Column(DateTime, nullable=True)
 
 
-class ConversationAgent(BaseModel):
-    id: int
-    conversation_id: int
-    agent_id: int
-    is_active: bool
-    created_at: datetime.datetime
-    status: int
-    last_updated: Optional[datetime.datetime]
+class User(Base):
+    __tablename__ = "user"
 
-    class Config:
-        orm_mode = True
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    last_updated = Column(DateTime, nullable=True)
 
 
-class SharedConversation(BaseModel):
-    id: int
-    conversation_id: int
-    created_at: datetime.datetime
-    status: int
-    last_updated: Optional[datetime.datetime]
-    user_id: Optional[int]
-    Column: Optional[int]
+class Conversation(Base):
+    __tablename__ = "conversation"
 
-    class Config:
-        orm_mode = True
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    is_shared = Column(Boolean, default=False)
+    session = Column(String, nullable=True)
+    last_updated = Column(DateTime, nullable=True)
+    summary = Column(Text, nullable=True)
+    summary_embedding = Column(ARRAY(Float), nullable=True)
 
 
-class Message(BaseModel):
-    id: int
-    role: int
-    created_at: datetime.datetime
-    status: int
-    content: str
-    content_type: int
-    message_type: int
-    shared_conversation_id: Optional[int]
-    conversation_id: Optional[int]
-    user_id: Optional[int]
-    agent_id: Optional[int]
-    reaction: Optional[str]
-    last_updated: Optional[datetime.datetime]
+class ConversationAgent(Base):
+    __tablename__ = "conversation_agent"
 
-    class Config:
-        orm_mode = True
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"))
+    agent_id = Column(Integer, ForeignKey("agents.id"))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    last_updated = Column(DateTime, nullable=True)
+
+
+class SharedConversation(Base):
+    __tablename__ = "shared_conversation"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    last_updated = Column(DateTime, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class Message(Base):
+    __tablename__ = "message"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Integer, default=1)
+    content = Column(Text, nullable=False)
+    content_type = Column(Integer, nullable=False)
+    message_type = Column(Integer, nullable=False)
+    shared_conversation_id = Column(Integer, ForeignKey("shared_conversations.id"), nullable=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    agent_id = Column(Integer, ForeignKey("agents.id"), nullable=True)
+    reaction = Column(String, nullable=True)
+    last_updated = Column(DateTime, nullable=True)

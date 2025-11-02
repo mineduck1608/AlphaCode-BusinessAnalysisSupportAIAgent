@@ -2,12 +2,11 @@ from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
 
 from api.services.shared_conversation import SharedConversationService
-from api.core.models import SharedConversation
-
+from api.core import schemas
 router = APIRouter(prefix="/shared-conversations", tags=["shared_conversations"])
 
 
-@router.post("/", response_model=SharedConversation, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.SharedConversation, status_code=status.HTTP_201_CREATED)
 def create_shared_conversation(
         conversation_id: int,
         user_id: Optional[int] = None,
@@ -29,7 +28,7 @@ def create_shared_conversation(
         )
 
 
-@router.get("/{shared_conv_id}", response_model=SharedConversation)
+@router.get("/{shared_conv_id}", response_model=schemas.SharedConversation)
 def get_shared_conversation(shared_conv_id: int):
     """Lấy shared conversation theo ID"""
     service = SharedConversationService()
@@ -43,8 +42,7 @@ def get_shared_conversation(shared_conv_id: int):
     
     return shared_conv
 
-
-@router.get("/", response_model=List[SharedConversation])
+@router.get("/", response_model=List[schemas.SharedConversation])
 def get_all_shared_conversations(
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=1000)
@@ -54,7 +52,7 @@ def get_all_shared_conversations(
     return service.get_all_shared_conversations(skip=skip, limit=limit)
 
 
-@router.get("/conversation/{conversation_id}", response_model=List[SharedConversation])
+@router.get("/conversation/{conversation_id}", response_model=List[schemas.SharedConversation])
 def get_shared_conversations_by_conversation(conversation_id: int):
     """Lấy shared conversations theo conversation_id"""
     service = SharedConversationService()
@@ -69,7 +67,7 @@ def get_shared_conversations_by_conversation(conversation_id: int):
     return shared_convs
 
 
-@router.get("/user/{user_id}", response_model=List[SharedConversation])
+@router.get("/user/{user_id}", response_model=List[schemas.SharedConversation])
 def get_shared_conversations_by_user(user_id: int):
     """Lấy shared conversations theo user_id"""
     service = SharedConversationService()
@@ -84,7 +82,7 @@ def get_shared_conversations_by_user(user_id: int):
     return shared_convs
 
 
-@router.put("/{shared_conv_id}", response_model=SharedConversation)
+@router.put("/{shared_conv_id}", response_model=schemas.SharedConversation)
 def update_shared_conversation(
         shared_conv_id: int,
         user_id: Optional[int] = None,
@@ -140,7 +138,7 @@ def delete_shared_conversations_by_conversation(conversation_id: int):
     return {"message": "All shared conversations for this conversation deleted successfully"}
 
 
-@router.post("/share/{conversation_id}/to/{user_id}", response_model=SharedConversation)
+@router.post("/share/{conversation_id}/to/{user_id}", response_model=schemas.SharedConversation)
 def share_conversation_to_user(conversation_id: int, user_id: int):
     """Chia sẻ conversation đến user cụ thể"""
     service = SharedConversationService()
