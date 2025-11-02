@@ -7,12 +7,9 @@ import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import PreviewPanel from "./PreviewPanel";
 import { useWebSocket } from "@/app/lib/hooks/useWebSocket";
-import { getCurrentUserId, logout } from "@/app/lib/authMock";
-import { getWebSocketUrl, UI_CONFIG } from "@/app/lib/constants";
+import { getCurrentUserId, logout, getCurrentUserEmail } from "@/app/lib/authMock";
+import { getWebSocketUrl, STORAGE_KEYS, UI_CONFIG } from "@/app/lib/constants";
 import { PanelRightOpen, PanelRightClose } from "lucide-react";
-import { messageApi } from "@/app/api/messageApi";
-import type { Message as APIMessage } from "@/app/types/message";
-import { useSearchParams } from "next/navigation";
 
 export type Message = {
   id: string;
@@ -21,17 +18,24 @@ export type Message = {
   time?: string;
 };
 
+const STORAGE_KEY = STORAGE_KEYS.CHAT_HISTORY;
+
 export default function ChatLayout() {
-  const searchParams = useSearchParams();
-  const conversationIdFromUrl = searchParams.get('id');
-  
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(conversationIdFromUrl);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [{ id: "m0", role: "assistant", content: UI_CONFIG.DEFAULT_GREETING, time: new Date().toLocaleTimeString() }];
+      return JSON.parse(raw) as Message[];
+    } catch {
+      return [{ id: "m0", role: "assistant", content: UI_CONFIG.DEFAULT_GREETING, time: new Date().toLocaleTimeString() }];
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const userEmail = getCurrentUserEmail();
 
   // WebSocket connection to backend
   const websocket = useWebSocket({
@@ -42,7 +46,7 @@ export default function ChatLayout() {
       if (wsMessage.type === 'system') {
         // System messages (welcome, etc.)
         const botMsg: Message = {
-          id: `ws-system-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: 'ws' + Date.now(),
           role: 'assistant',
           content: `[System] ${wsMessage.content}`,
           time: new Date().toLocaleTimeString(),
@@ -51,7 +55,7 @@ export default function ChatLayout() {
       } else if (wsMessage.type === 'text') {
         // Regular text response from agent
         const botMsg: Message = {
-          id: `ws-text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: 'ws' + Date.now(),
           role: 'assistant',
           content: wsMessage.content,
           time: new Date().toLocaleTimeString(),
@@ -68,77 +72,9 @@ export default function ChatLayout() {
     },
   });
 
-  // Sync conversation ID từ URL
   useEffect(() => {
-    if (conversationIdFromUrl && conversationIdFromUrl !== currentConversationId) {
-      setCurrentConversationId(conversationIdFromUrl);
-    }
-  }, [conversationIdFromUrl, currentConversationId]);
-
-  // Load messages khi conversation ID thay đổi
-  useEffect(() => {
-    const loadMessages = async () => {
-      if (!currentConversationId) {
-        // Không có conversation, hiển thị welcome message
-        setMessages([{ 
-          id: "welcome", 
-          role: "assistant", 
-          content: UI_CONFIG.DEFAULT_GREETING, 
-          time: new Date().toLocaleTimeString() 
-        }]);
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        // Clear messages cũ trước khi load
-        setMessages([]);
-        
-        const apiMessages = await messageApi.getByConversationId(currentConversationId);
-        
-        // Convert API messages to UI messages
-        const uiMessages: Message[] = apiMessages.map((msg: APIMessage) => ({
-          id: msg.id.toString(),
-          role: msg.user_id ? 'user' : 'assistant', // Nếu có user_id thì là user message
-          content: msg.content,
-          time: new Date(msg.created_at).toLocaleTimeString(),
-        }));
-        
-        setMessages(uiMessages);
-      } catch (error) {
-        console.error('Failed to load messages:', error);
-        
-        // Nếu conversation chưa có messages, hiển thị welcome message
-        const errorMessage = error instanceof Error ? error.message : '';
-        const errorDetail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-        
-        if (errorDetail === "No messages found for this conversation" || 
-            errorMessage.includes("No messages found")) {
-          setMessages([{ 
-            id: "welcome", 
-            role: "assistant", 
-            content: "👋 Start a new conversation! Send your first message below.", 
-            time: new Date().toLocaleTimeString() 
-          }]);
-        } else {
-          // Lỗi thật sự thì mới hiển thị error message
-          setMessages([{ 
-            id: "error", 
-            role: "assistant", 
-            content: "❌ Failed to load conversation messages.", 
-            time: new Date().toLocaleTimeString() 
-          }]);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadMessages();
-  }, [currentConversationId]);
-
-  // Auto scroll khi có messages mới
-  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    // auto scroll
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
@@ -146,8 +82,8 @@ export default function ChatLayout() {
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
     
-    // Add user message to UI with unique ID
-    const id = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Add user message to UI
+    const id = Date.now().toString();
     const userMsg: Message = { 
       id, 
       role: "user", 
@@ -196,7 +132,7 @@ export default function ChatLayout() {
         // Nếu gửi thất bại, fallback về mock
         setIsLoading(false);
         const errorMsg: Message = {
-          id: `err-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: 'err' + Date.now(),
           role: 'assistant',
           content: '❌ Failed to send message. WebSocket not connected.',
           time: new Date().toLocaleTimeString(),
@@ -208,7 +144,7 @@ export default function ChatLayout() {
       // Fallback: không có WebSocket connection
       setIsLoading(false);
       const offlineMsg: Message = {
-        id: `off-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: 'off' + Date.now(),
         role: 'assistant',
         content: '⚠️ WebSocket disconnected. Please check backend server at ws://localhost:8000/ws/chat',
         time: new Date().toLocaleTimeString(),
@@ -224,15 +160,10 @@ export default function ChatLayout() {
 
   const user = getCurrentUserId();
 
-  // Function để set conversation hiện tại
-  const handleSelectConversation = (conversationId: string) => {
-    setCurrentConversationId(conversationId);
-  };
-
   return (
-    <div className="flex h-full w-full bg-background text-white overflow-hidden">
-      <ChatSidebar onLogout={handleLogout} />
-      
+    <div className="flex h-full w-full bg-[#0f1419] text-white overflow-hidden">
+      <ChatSidebar onLogout={handleLogout} userEmail={userEmail}  />
+
       {/* Main Chat Area */}
       <div className={`flex flex-col flex-1 h-full overflow-hidden transition-all duration-300 ${
         showPreview ? (isPreviewExpanded ? 'w-[40%]' : 'w-[60%]') : 'w-full'

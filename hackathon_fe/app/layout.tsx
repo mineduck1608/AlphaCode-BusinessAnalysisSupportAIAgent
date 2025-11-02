@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 import { SidebarProvider } from '../app/context/SidebarContext';
+import { Toaster } from 'sonner';
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function RootLayout({
         <SidebarProvider>
           {children}
         </SidebarProvider>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

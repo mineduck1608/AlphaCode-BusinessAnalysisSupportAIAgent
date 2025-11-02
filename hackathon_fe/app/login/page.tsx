@@ -45,6 +45,7 @@ export default function AuthPage() {
 
         // ✅ Lưu user_id vào localStorage
         localStorage.setItem("user_id", String(user.id));
+        localStorage.setItem("user_email", user.email);
 
         // ✅ Redirect sang chat
         router.replace("/chat");
