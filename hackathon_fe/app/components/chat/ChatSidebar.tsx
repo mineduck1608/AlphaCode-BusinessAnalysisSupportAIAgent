@@ -10,6 +10,7 @@ import { conversationApi } from "@/app/api/conversationApi";
 import { Conversation } from "@/app/types/conversation";
 import { useRouter } from "next/navigation";
 import { getCurrentUserId } from "@/app/lib/authMock";
+import { toast } from "sonner";
 
 export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => void; userEmail?: string | null }) {
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -17,6 +18,8 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
   const [activeTab, setActiveTab] = useState<"recent" | "shared">("recent");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const router = useRouter();
 
   // Fetch conversations when component mounts
@@ -68,6 +71,41 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
     catch{
 
     }
+  }
+
+  const handleDeleteConversation = async (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation when clicking delete
+    setConversationToDelete(conversationId);
+    setShowDeleteModal(true);
+  }
+
+  const confirmDelete = async () => {
+    if (!conversationToDelete) return;
+
+    // Use toast.promise for better UX
+    toast.promise(
+      async () => {
+        await conversationApi.delete(conversationToDelete);
+        // Remove from local state
+        setConversations(prev => prev.filter(conv => conv.id !== conversationToDelete));
+        // If currently viewing this conversation, redirect to chat
+        if (window.location.pathname.includes(conversationToDelete)) {
+          router.push('/chat');
+        }
+        setShowDeleteModal(false);
+        setConversationToDelete(null);
+      },
+      {
+        loading: 'Deleting conversation...',
+        success: 'Conversation deleted successfully',
+        error: 'Failed to delete conversation',
+      }
+    );
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setConversationToDelete(null);
   }
 
   return (
@@ -134,17 +172,29 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
                   <div 
                     key={conversation.id}
                     onClick={() => handleConversationClick(conversation.id)}
-                    className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20"
+                    className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20 relative"
                     title={conversation.name || conversation.summary || `Conversation ${conversation.id.slice(0, 8)}`}
                   >
                     <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
-                      <MessageSquare size={14} className="text-blue-400" />
-                      <span className="truncate">
+                      <MessageSquare size={14} className="text-blue-400 flex-shrink-0" />
+                      <span className="truncate flex-1">
                         {conversation.name || conversation.summary || `Chat ${conversation.id.slice(0, 8)}`}
                       </span>
+                      {/* Delete button - only show on hover */}
+                      <button
+                        onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-900/30 rounded transition-all flex-shrink-0"
+                        title="Delete conversation"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+                          <path d="M3 6h18"/>
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                      </button>
                     </div>
                     <div className="text-xs text-gray-500 mt-1 px-5">
-                      {new Date(conversation.last_updated).toLocaleDateString()}
+                      {conversation.last_updated ? new Date(conversation.last_updated).toLocaleDateString() : 'No date'}
                     </div>
                   </div>
                 ))
@@ -201,6 +251,48 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
         isOpen={showShareDialog}
         onClose={() => setShowShareDialog(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={cancelDelete}>
+          <div className="bg-[#1a1f2e] rounded-lg p-6 max-w-md w-full mx-4 border border-blue-900/20" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" x2="10" y1="11" y2="17"/>
+                  <line x1="14" x2="14" y1="11" y2="17"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Delete Conversation</h3>
+                <p className="text-sm text-gray-400">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this conversation? All messages and history will be permanently removed.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={cancelDelete}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
