@@ -1,47 +1,84 @@
+// components/chat/ChatLayout.tsx
 "use client";
 
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ChatSidebar from "./ChatSidebar";
 import ChatHeader from "./ChatHeader";
 import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import { mockSendMessage } from "@/lib/chatMockAPI";
+import { mockLogout, getCurrentUser } from "@/lib/authMock";
 
-// ✅ Khai báo type thống nhất cho toàn hệ thống
 export type Message = {
+  id: string;
   role: "user" | "assistant";
   content: string;
+  time?: string;
 };
 
-export default function ChatLayout() {
-  // ✅ Gán type cho useState
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi there 👋 How can I help you today?" },
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
+const STORAGE_KEY = "chatgpt_clone_history_v1";
 
+export default function ChatLayout() {
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [{ id: "m0", role: "assistant", content: "Hi there 👋 How can I help you today?", time: new Date().toLocaleTimeString() }];
+      return JSON.parse(raw) as Message[];
+    } catch {
+      return [{ id: "m0", role: "assistant", content: "Hi there 👋 How can I help you today?", time: new Date().toLocaleTimeString() }];
+    }
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    // auto scroll
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
+
+  // handle sending and typing animation
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
-
-    // ✅ ép type role về đúng union
-    const newMessage: Message = { role: "user", content: text };
-    setMessages((prev) => [...prev, newMessage]);
+    const id = Date.now().toString();
+    const userMsg: Message = { id, role: "user", content: text, time: new Date().toLocaleTimeString() };
+    setMessages((s) => [...s, userMsg]);
     setIsLoading(true);
 
-    const reply = await mockSendMessage(text);
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: reply } as Message,
-    ]);
-    setIsLoading(false);
+    const reply = await mockSendMessage(text); // full reply string
+
+    // create a blank assistant message and animate
+    const botId = "b" + Date.now().toString();
+    setMessages((s) => [...s, { id: botId, role: "assistant", content: "", time: new Date().toLocaleTimeString() }]);
+
+    // typing animation: reveal characters one by one
+    let idx = 0;
+    const interval = 24; // ms per char (tweak for speed)
+    const timer = setInterval(() => {
+      idx += 1;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botId ? { ...m, content: reply.slice(0, idx) } : m))
+      );
+      if (idx >= reply.length) {
+        clearInterval(timer);
+        setIsLoading(false);
+      }
+    }, interval);
   };
 
+  const handleLogout = () => {
+    mockLogout();
+    location.href = "/login";
+  };
+
+  const user = getCurrentUser();
+
   return (
-    <div className="flex h-screen bg-[#111111] text-gray-200">
-      <ChatSidebar />
+    <div className="flex h-screen bg-neutral-900 text-neutral-100">
+      <ChatSidebar onLogout={handleLogout} userEmail={user?.email} />
       <div className="flex flex-col flex-1">
         <ChatHeader />
-        <ChatMessageList messages={messages} isLoading={isLoading} />
+        <ChatMessageList messages={messages} isLoading={isLoading} bottomRef={bottomRef} />
         <ChatInput onSend={handleSend} />
       </div>
     </div>
