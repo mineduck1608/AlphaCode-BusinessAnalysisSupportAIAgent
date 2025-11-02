@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { userApi } from "@/app/api/userApi";
-import { getCurrentUser } from "@/app/lib/authMock";
 
 type AuthFormData = {
   email: string;
@@ -21,10 +20,10 @@ export default function AuthPage() {
   } = useForm<AuthFormData>();
   const router = useRouter();
 
-  // Nếu đã login -> chuyển sang /chat
+  // ✅ Kiểm tra nếu đã login (check user_id trong localStorage)
   useEffect(() => {
-    const u = getCurrentUser();
-    if (u) router.replace("/chat");
+    const userId = localStorage.getItem("user_id");
+    if (userId) router.replace("/chat");
   }, [router]);
 
   const onSubmit = async (data: AuthFormData) => {
@@ -35,7 +34,7 @@ export default function AuthPage() {
         await userApi.create({
           email: data.email,
           password: data.password,
-          role_id: "2", // role mặc định cho user
+          role_id: "1", // role mặc định cho user
         });
         alert("Tạo tài khoản thành công! Hãy đăng nhập.");
         setMode("login");
@@ -46,7 +45,7 @@ export default function AuthPage() {
         // ✅ Lưu user_id vào localStorage
         localStorage.setItem("user_id", String(user.id));
 
-        // ✅ Chuyển đến trang chat
+        // ✅ Redirect sang chat
         router.replace("/chat");
       }
     } catch (err: any) {
