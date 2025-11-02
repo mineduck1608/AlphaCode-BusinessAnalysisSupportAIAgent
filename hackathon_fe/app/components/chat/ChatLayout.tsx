@@ -5,9 +5,11 @@ import ChatSidebar from "./ChatSidebar";
 import ChatHeader from "./ChatHeader";
 import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
+import PreviewPanel from "./PreviewPanel";
 import { useWebSocket } from "@/app/lib/hooks/useWebSocket";
 import { getCurrentUser, mockLogout } from "@/app/lib/authMock";
 import { getWebSocketUrl, STORAGE_KEYS, UI_CONFIG } from "@/app/lib/constants";
+import { PanelRightOpen, PanelRightClose } from "lucide-react";
 
 export type Message = {
   id: string;
@@ -29,6 +31,9 @@ export default function ChatLayout() {
     }
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   // WebSocket connection to backend
@@ -87,6 +92,38 @@ export default function ChatLayout() {
     setMessages((s) => [...s, userMsg]);
     setIsLoading(true);
 
+    // Mock: Show preview for demo (remove this in production)
+    if (text.toLowerCase().includes("analyze") || text.toLowerCase().includes("improve")) {
+      setTimeout(() => {
+        setPreviewData({
+          summary: {
+            added: 1,
+            modified: 2,
+            deleted: 0,
+            totalLines: { added: 47, deleted: 12 },
+          },
+          files: [
+            {
+              filename: "requirements/user-authentication.md",
+              status: "modified",
+              original: `# User Authentication\n\nThe system shall allow users to login with username and password.\nThe password must be at least 6 characters.`,
+              modified: `# User Authentication\n\nThe system SHALL allow users to authenticate using email and password.\nThe password MUST be at least 8 characters and contain:\n- At least one uppercase letter\n- At least one number\n- At least one special character`,
+            },
+          ],
+          issues: [
+            {
+              type: "warning",
+              message: "Password requirements strengthened - may affect existing users",
+              file: "user-authentication.md",
+              line: 4,
+            },
+          ],
+          message: "I've improved the authentication requirements following IEEE 830 standards.",
+        });
+        setShowPreview(true);
+      }, 1000);
+    }
+
     // Send via WebSocket if connected
     if (websocket.connected) {
       const success = websocket.sendMessage(text);
@@ -125,8 +162,37 @@ export default function ChatLayout() {
   return (
     <div className="flex h-full w-full bg-[#0f1419] text-white overflow-hidden">
       <ChatSidebar onLogout={handleLogout} userEmail={user?.email} />
-      <div className="flex flex-col flex-1 h-full overflow-hidden">
-        <ChatHeader connected={websocket.connected} connecting={websocket.connecting} />
+      
+      {/* Main Chat Area */}
+      <div className={`flex flex-col flex-1 h-full overflow-hidden transition-all duration-300 ${
+        showPreview ? (isPreviewExpanded ? 'w-[40%]' : 'w-[60%]') : 'w-full'
+      }`}>
+        {/* Header with Preview Toggle */}
+        <div className="flex items-center border-b border-blue-900/20 bg-[#0a0e13] shadow-lg shrink-0">
+          <div className="flex-1">
+            <ChatHeader connected={websocket.connected} connecting={websocket.connecting} />
+          </div>
+          
+          {/* Preview Toggle Button - Inside header, not overlapping */}
+          <div className="px-4">
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className={`p-2.5 rounded-lg transition-all ${
+                showPreview
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-blue-900/20 text-gray-400 hover:bg-blue-900/40 hover:text-gray-200'
+              }`}
+              title={showPreview ? 'Hide preview' : 'Show preview'}
+            >
+              {showPreview ? (
+                <PanelRightClose className="w-5 h-5" />
+              ) : (
+                <PanelRightOpen className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+        
         <div className="flex-1 overflow-y-auto">
           <ChatMessageList messages={messages} isLoading={isLoading} bottomRef={bottomRef} />
         </div>
@@ -134,6 +200,20 @@ export default function ChatLayout() {
           <ChatInput onSend={handleSend} disabled={!websocket.connected} />
         </div>
       </div>
+
+      {/* Preview Panel */}
+      {showPreview && (
+        <div className={`h-full transition-all duration-300 ${
+          isPreviewExpanded ? 'w-[60%]' : 'w-[40%]'
+        }`}>
+          <PreviewPanel
+            data={previewData}
+            onClose={() => setShowPreview(false)}
+            isExpanded={isPreviewExpanded}
+            onToggleExpand={() => setIsPreviewExpanded(!isPreviewExpanded)}
+          />
+        </div>
+      )}
     </div>
   );
 }

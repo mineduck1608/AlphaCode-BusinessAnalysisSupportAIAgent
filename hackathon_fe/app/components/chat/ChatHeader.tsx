@@ -11,7 +11,7 @@ interface ChatHeaderProps {
 
 export default function ChatHeader({ connected = false, connecting = false }: ChatHeaderProps) {
   return (
-    <div className="px-6 py-4 border-b border-blue-900/20 bg-[#0a0e13] flex items-center justify-between shrink-0 shadow-lg">
+    <div className="px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 bg-linear-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center relative shadow-lg shadow-blue-500/20">
           <Bot className="w-7 h-7 text-white" />
