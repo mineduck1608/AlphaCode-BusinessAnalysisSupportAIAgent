@@ -21,14 +21,16 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
   // Fetch conversations when component mounts
   useEffect(() => {
     const fetchConversations = async () => {
+      const userId = localStorage.getItem("user_id");
+      if (!userId) {
+        setConversations([]);
+        return;
+      }
+
       setLoadingConversations(true);
       try {
-        const data = await conversationApi.getAll();
-        // Sort by last_updated descending to show most recent first
-        const sortedData = data.sort((a, b) => 
-          new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime()
-        );
-        setConversations(sortedData.slice(0, 10)); // Show only 10 most recent
+        const data = await conversationApi.getByUserId(userId);
+        setConversations(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch conversations:', error);
         setConversations([]);
