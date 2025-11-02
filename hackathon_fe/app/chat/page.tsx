@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import ChatLayout from "@/app/components/chat/ChatLayout";
 import { getCurrentUserId } from "../lib/authMock";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,9 @@ export default function ChatPage() {
 
   return (
     <div className="fixed inset-0 z-50">
-      <ChatLayout />
+      <Suspense fallback={<div className="flex items-center justify-center h-full text-white">Loading...</div>}>
+        <ChatLayout />
+      </Suspense>
     </div>
   );
 }
