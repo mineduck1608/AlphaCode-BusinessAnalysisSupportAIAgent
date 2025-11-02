@@ -1,4 +1,3 @@
-chromadb
 google-generativeai
-numpy
 python-dotenv
+requests

@@ -1,6 +1,10 @@
 # Chroma wrapper + embedder (Gemini embeddings)
 import os
 from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+# load .env if present
+load_dotenv()
 
 try:
 	import chromadb
