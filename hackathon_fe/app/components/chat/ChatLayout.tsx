@@ -32,6 +32,7 @@ export default function ChatLayout() {
     }
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
@@ -43,9 +44,17 @@ export default function ChatLayout() {
     url: getWebSocketUrl(),
     autoConnect: true,
     onMessage: (wsMessage) => {
-      // Khi nhận message từ WebSocket, thêm vào chat
+      console.log('📨 Received WebSocket message:', wsMessage);
+      
+      // Handle typing indicator
+      if (wsMessage.type === 'typing') {
+        setIsAgentTyping(wsMessage.metadata?.isTyping || false);
+        setIsLoading(false); // Stop loading when agent starts typing
+        return;
+      }
+      
+      // Handle system messages (welcome, etc.)
       if (wsMessage.type === 'system') {
-        // System messages (welcome, etc.)
         const botMsg: Message = {
           id: 'ws' + Date.now(),
           role: 'assistant',
@@ -55,6 +64,8 @@ export default function ChatLayout() {
         setMessages((prev) => [...prev, botMsg]);
       } else if (wsMessage.type === 'text') {
         // Regular text response from agent
+        setIsAgentTyping(false); // Stop typing indicator
+        
         const botMsg: Message = {
           id: 'ws' + Date.now(),
           role: 'assistant',
@@ -62,6 +73,18 @@ export default function ChatLayout() {
           time: new Date().toLocaleTimeString(),
         };
         setMessages((prev) => [...prev, botMsg]);
+        setIsLoading(false);
+      } else if (wsMessage.type === 'error') {
+        // Handle error messages
+        setIsAgentTyping(false);
+        
+        const errorMsg: Message = {
+          id: 'ws' + Date.now(),
+          role: 'assistant',
+          content: `⚠️ Error: ${wsMessage.content}`,
+          time: new Date().toLocaleTimeString(),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
         setIsLoading(false);
       }
     },
@@ -279,7 +302,12 @@ export default function ChatLayout() {
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          <ChatMessageList messages={messages} isLoading={isLoading} bottomRef={bottomRef} />
+          <ChatMessageList 
+            messages={messages} 
+            isLoading={isLoading}
+            isAgentTyping={isAgentTyping}
+            bottomRef={bottomRef} 
+          />
         </div>
         <div className="shrink-0">
           <ChatInput onSend={handleSend} disabled={false} />

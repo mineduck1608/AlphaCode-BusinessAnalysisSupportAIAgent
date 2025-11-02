@@ -3,21 +3,24 @@
 import React, { useEffect, useRef } from "react";
 import { Message } from "./ChatLayout";
 import { Bot, User } from "lucide-react";
+import TypingIndicator from "./TypingIndicator";
 
 export default function ChatMessageList({
   messages,
   isLoading,
+  isAgentTyping,
   bottomRef,
 }: {
   messages: Message[];
   isLoading: boolean;
+  isAgentTyping?: boolean;
   bottomRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isAgentTyping]);
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#0f1419]">
@@ -54,7 +57,11 @@ export default function ChatMessageList({
         </div>
       ))}
 
-      {isLoading && (
+      {/* Agent Typing Indicator */}
+      {isAgentTyping && <TypingIndicator />}
+
+      {/* Loading fallback (if typing not triggered) */}
+      {isLoading && !isAgentTyping && (
         <div className="flex gap-4">
           <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-linear-to-br from-purple-600 to-blue-600 border-2 border-blue-500/30 shadow-lg">
             <Bot className="w-5 h-5 text-white" />

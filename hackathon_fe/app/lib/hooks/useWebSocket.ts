@@ -101,6 +101,29 @@ export function useWebSocket({
 
       ws.onmessage = (event) => {
         const message = parseMessage(event.data);
+        
+        // Handle typing indicator
+        if (message.type === 'typing') {
+          // Typing indicator sẽ được handle ở component level
+          onMessage?.(message);
+          return;
+        }
+        
+        // Handle system messages (welcome, etc)
+        if (message.type === 'system') {
+          setMessages((prev) => [...prev, message]);
+          onMessage?.(message);
+          return;
+        }
+        
+        // Handle error messages
+        if (message.type === 'error') {
+          setMessages((prev) => [...prev, message]);
+          onMessage?.(message);
+          return;
+        }
+        
+        // Handle normal text messages
         setMessages((prev) => [...prev, message]);
         onMessage?.(message);
       };
