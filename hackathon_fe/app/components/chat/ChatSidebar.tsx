@@ -9,6 +9,7 @@ import { getAllConversations, type ShareableConversation } from "@/app/lib/share
 import { conversationApi } from "@/app/api/conversationApi";
 import { Conversation } from "@/app/types/conversation";
 import { useRouter } from "next/navigation";
+import { getCurrentUserId } from "@/app/lib/authMock";
 
 export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => void; userEmail?: string | undefined }) {
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -52,6 +53,21 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
   const handleConversationClick = (conversationId: string) => {
     router.push(`/chat?id=${conversationId}`);
   };
+
+  const handleNewChat = async () => {
+    try{
+      const newConv = await conversationApi.create({
+        name: "New Conversation",
+        user_id: getCurrentUserId() || -1,
+        is_shared: false
+      });
+      router.push('/chat?id=' + newConv.id);
+    }
+    catch{
+
+    }
+  }
+
   return (
     <div className="w-72 bg-background flex flex-col border-r border-blue-900/20">
       {/* Header với gradient và logo */}
@@ -66,7 +82,7 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
           />
           <span className="font-bold text-lg text-white">AlphaCode</span>
         </div>
-        <button className="w-full flex items-center justify-center gap-2 text-sm font-medium text-white bg-linear-to-r from-blue-600 to-blue-500 px-4 py-3 rounded-lg hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20">
+        <button onClick={handleNewChat} className="w-full flex items-center justify-center gap-2 text-sm font-medium text-white bg-linear-to-r from-blue-600 to-blue-500 px-4 py-3 rounded-lg hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20">
           <Plus size={18} /> New Chat
         </button>
       </div>
