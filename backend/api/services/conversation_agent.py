@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repositories.conversation_agent import ConversationAgentRepository
-from ...core.models import ConversationAgent
+from api.core.models import ConversationAgent
 
 
 class ConversationAgentService:

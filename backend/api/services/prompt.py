@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repositories.prompt import PromptRepository
-from ...core.models import Prompt
+from api.core.models import Prompt
 
 
 class PromptService:

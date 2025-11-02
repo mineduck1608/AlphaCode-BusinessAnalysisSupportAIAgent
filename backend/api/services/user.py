@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # from ...core.security import get_password_hash 
 
 from ..repositories.user import UserRepository
-from ...core.models import User
+from api.core.models import User
 
 
 class UserService:

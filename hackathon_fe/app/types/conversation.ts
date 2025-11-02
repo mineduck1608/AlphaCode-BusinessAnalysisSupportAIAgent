@@ -7,6 +7,6 @@ export type Conversation = {
     status: number
     is_shared: boolean
     summary?: string
-    summary_embedding: Float16Array
-    share_token: string 
+    summary_embedding: Float32Array
+    session: string 
 }
