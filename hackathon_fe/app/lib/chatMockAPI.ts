@@ -12,3 +12,4 @@ export async function mockSendMessage(text: string): Promise<string> {
   const random = replies[Math.floor(Math.random() * replies.length)];
   return `${random}\n\n(You said: "${text}")`;
 }
+
