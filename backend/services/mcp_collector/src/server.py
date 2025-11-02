@@ -1,4 +1,4 @@
-# STDIO MCP server: Collector Agent (ingest + normalize)
+# STDIO MCP server: Collector Agent - Thu thập và chuẩn hóa dữ liệu đầu vào
 import sys
 import json
 import traceback
@@ -73,52 +73,52 @@ def handle(msg):
             for c in chunks:
                 text = c.get("text", "")
                 # Split text into stories based on Story: marker
-            story_parts = []
-            current_story = []
-            lines = text.splitlines()
-            for line in lines:
-                if line.strip().lower().startswith("story:"):
-                    if current_story:
-                        story_parts.append("\n".join(current_story))
-                    current_story = [line]
-                else:
-                    current_story.append(line)
-            if current_story:
-                story_parts.append("\n".join(current_story))
-
-            # Process each story
-            for story_text in story_parts:
-                title = ""
-                description_lines = []
-                acceptance_lines = []
-                in_acceptance = False
-
-                for line in story_text.splitlines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
-                    if line.lower().startswith("story:"):
-                        title = line
-                    elif line.lower().startswith("acceptance criteria:"):
-                        in_acceptance = True
-                    elif line.startswith("-") and in_acceptance:
-                        acceptance_lines.append(line[1:].strip())
-                    elif in_acceptance:
-                        acceptance_lines.append(line)
+                story_parts = []
+                current_story = []
+                lines = text.splitlines()
+                for line in lines:
+                    if line.strip().lower().startswith("story:"):
+                        if current_story:
+                            story_parts.append("\n".join(current_story))
+                        current_story = [line]
                     else:
-                        description_lines.append(line)
+                        current_story.append(line)
+                if current_story:
+                    story_parts.append("\n".join(current_story))
 
-                description = "\n".join(line for line in description_lines if line and not line.startswith("-"))
-                acceptance = "\n".join(acceptance_lines)
+                # Process each story
+                for story_text in story_parts:
+                    title = ""
+                    description_lines = []
+                    acceptance_lines = []
+                    in_acceptance = False
 
-                stories.append({
-                    "id": f"S{sid}",
-                    "title": title[:80],
-                    "description": description,
-                    "acceptance_criteria": acceptance
-                })
-                sid += 1
+                    for line in story_text.splitlines():
+                        line = line.strip()
+                        if not line:
+                            continue
+                        
+                        if line.lower().startswith("story:"):
+                            title = line
+                        elif line.lower().startswith("acceptance criteria:"):
+                            in_acceptance = True
+                        elif line.startswith("-") and in_acceptance:
+                            acceptance_lines.append(line[1:].strip())
+                        elif in_acceptance:
+                            acceptance_lines.append(line)
+                        else:
+                            description_lines.append(line)
+
+                    description = "\n".join(line for line in description_lines if line and not line.startswith("-"))
+                    acceptance = "\n".join(acceptance_lines)
+
+                    stories.append({
+                        "id": f"S{sid}",
+                        "title": title[:80],
+                        "description": description,
+                        "acceptance_criteria": acceptance
+                    })
+                    sid += 1
             return {"ok": True, "stories": stories}
         else:
             return {"error": f"unknown method {method}"}
@@ -127,7 +127,7 @@ def handle(msg):
 
 
 def run():
-    send({"capabilities": ["ingest_raw", "normalize"], "name": "mcp_collector"})
+    send({"capabilities": ["ingest_raw", "normalize", "extract_stories"], "name": "mcp_collector"})
     for line in sys.stdin:
         if not line.strip():
             continue

@@ -1,4 +1,4 @@
-# STDIO MCP server: Reporter Agent (generate reports / summaries)
+# STDIO MCP server: Reporter Agent - Tạo báo cáo, bảng tóm tắt, hoặc visual diagram
 import sys
 import json
 import traceback

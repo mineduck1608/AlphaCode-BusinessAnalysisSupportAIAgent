@@ -7,6 +7,7 @@ export { promptApi } from './promptApi';
 export { roleApi } from './roleApi';
 export { conversationAgentApi } from './conversationAgentApi';
 export { sharedConversationApi } from './sharedConversationApi';
+export { analyzeStories, extractAndPrioritize, buildReport, runPipeline } from './mcpApi';
 
 // Export types từ type files
 export type { Message } from '@/app/types/message';

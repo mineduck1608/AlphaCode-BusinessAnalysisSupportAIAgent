@@ -1,4 +1,4 @@
-# STDIO MCP server: Requirement Agent (identify + prioritize)
+# STDIO MCP server: Requirement Agent - Xác định yêu cầu kinh doanh chính, ưu tiên
 import sys
 import json
 import traceback

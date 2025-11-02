@@ -6,6 +6,7 @@ import ChatHeader from "./ChatHeader";
 import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import PreviewPanel from "./PreviewPanel";
+import { analyzeStories, runPipeline } from '@/app/api/mcpApi';
 import { useWebSocket } from "@/app/lib/hooks/useWebSocket";
 import { getCurrentUser, mockLogout } from "@/app/lib/authMock";
 import { getWebSocketUrl, STORAGE_KEYS, UI_CONFIG } from "@/app/lib/constants";
@@ -77,7 +78,7 @@ export default function ChatLayout() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  // handle sending via WebSocket
+  // handle sending: if message contains "Story:" -> pipeline, else -> WebSocket chat
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
     
@@ -92,63 +93,146 @@ export default function ChatLayout() {
     setMessages((s) => [...s, userMsg]);
     setIsLoading(true);
 
-    // Mock: Show preview for demo (remove this in production)
-    if (text.toLowerCase().includes("analyze") || text.toLowerCase().includes("improve")) {
-      setTimeout(() => {
-        setPreviewData({
-          summary: {
-            added: 1,
-            modified: 2,
-            deleted: 0,
-            totalLines: { added: 47, deleted: 12 },
-          },
-          files: [
-            {
-              filename: "requirements/user-authentication.md",
-              status: "modified",
-              original: `# User Authentication\n\nThe system shall allow users to login with username and password.\nThe password must be at least 6 characters.`,
-              modified: `# User Authentication\n\nThe system SHALL allow users to authenticate using email and password.\nThe password MUST be at least 8 characters and contain:\n- At least one uppercase letter\n- At least one number\n- At least one special character`,
-            },
-          ],
-          issues: [
-            {
-              type: "warning",
-              message: "Password requirements strengthened - may affect existing users",
-              file: "user-authentication.md",
-              line: 4,
-            },
-          ],
-          message: "I've improved the authentication requirements following IEEE 830 standards.",
-        });
-        setShowPreview(true);
-      }, 1000);
-    }
+    // Check if message is requirements analysis (contains "Story:" or command)
+    const isRequirementsAnalysis = text.toLowerCase().includes('story:') || 
+                                   text.toLowerCase().startsWith('/analyze') ||
+                                   text.toLowerCase().startsWith('/pipeline');
+    
+    if (isRequirementsAnalysis) {
+      // Route to pipeline for requirements analysis
+      try {
+        // Use raw_text instead of stories to let collector extract multiple stories from input
+        // Collector will automatically detect and split on "Story:" markers
+        const resp = await runPipeline({ raw_text: text });
+        const payload = resp || {};
 
-    // Send via WebSocket if connected
-    if (websocket.connected) {
-      const success = websocket.sendMessage(text);
-      if (!success) {
-        // Nếu gửi thất bại, fallback về mock
-        setIsLoading(false);
-        const errorMsg: Message = {
-          id: 'err' + Date.now(),
+      // Extract data from pipeline response
+      // Handle nested analysis structure: analysis.analysis.summary or analysis.summary
+      const analysisRaw = payload.analysis || {};
+      const analysis = analysisRaw.analysis || analysisRaw; // Support both nested and flat structure
+      const report = payload.report || {};
+      const requirements = payload.requirements || [];
+      const prioritized = payload.prioritized || {};
+      const prioritizedRequirements = prioritized.requirements || requirements;
+
+      // Build chat message: show analysis summary and report preview
+      const parts: string[] = [];
+      
+      // Analysis summary
+      if (analysis.summary) {
+        const summary = analysis.summary;
+        if (summary.total_stories) {
+          parts.push(`📊 Phân tích hoàn tất: ${summary.total_stories} user story được xử lý`);
+          if (summary.stories_with_issues > 0) {
+            parts.push(`⚠️ ${summary.stories_with_issues} story có vấn đề (${summary.total_issues} vấn đề tổng cộng)`);
+          } else {
+            parts.push(`✅ Không phát hiện vấn đề`);
+          }
+        }
+      }
+
+      // Issues summary - check both analysis.issues and analysisRaw.issues
+      const issues = Array.isArray(analysis.issues) ? analysis.issues : 
+                     Array.isArray(analysisRaw.issues) ? analysisRaw.issues : [];
+      if (issues.length > 0) {
+        const criticalIssues = issues.filter((i: any) => i.type === 'conflict' || i.severity === 'high').length;
+        if (criticalIssues > 0) {
+          parts.push(`🔴 ${criticalIssues} vấn đề nghiêm trọng cần xử lý`);
+        }
+        parts.push(`📋 Tổng cộng ${issues.length} vấn đề đã được phát hiện. Xem chi tiết trong Preview Panel.`);
+      }
+
+      // Requirements summary
+      if (prioritizedRequirements.length > 0) {
+        const reqCount = prioritizedRequirements.length;
+        parts.push(`📝 ${reqCount} requirement${reqCount > 1 ? 's' : ''} đã được xác định và ưu tiên hóa`);
+        
+        const topRequirements = prioritizedRequirements.slice(0, 3);
+        if (topRequirements.length > 0 && topRequirements.length <= 3) {
+          if (topRequirements.length === 1) {
+            // Nếu chỉ có 1 requirement, hiển thị trực tiếp
+            const req = topRequirements[0];
+            const title = req.title || req.summary || req.id || `Requirement`;
+            const priority = req.priority || req.priority_score || 'N/A';
+            parts.push(`\n🎯 Requirement: ${title} (Priority: ${priority})`);
+          } else {
+            // Nếu có nhiều hơn 1, hiển thị top list
+            parts.push(`\nTop ${topRequirements.length} requirements ưu tiên cao:`);
+            topRequirements.forEach((req: any, idx: number) => {
+              const title = req.title || req.summary || req.id || `Requirement ${idx + 1}`;
+              const priority = req.priority || req.priority_score || 'N/A';
+              parts.push(`  ${idx + 1}. ${title} (Priority: ${priority})`);
+            });
+          }
+        }
+      }
+
+      // Report preview
+      if (report.final_report_markdown) {
+        parts.push(`📄 Báo cáo đã được tạo. Xem chi tiết trong Preview Panel bên phải.`);
+      }
+
+      if (!parts.length) {
+        parts.push('✅ Pipeline đã chạy xong. Không có vấn đề nào được phát hiện.');
+      }
+
+      // Update preview data with full pipeline results
+      setPreviewData({
+        summary: {
+          added: 0,
+          modified: 0,
+          deleted: 0,
+          totalLines: { added: 0, deleted: 0 }
+        },
+        files: [],
+        issues: issues.map((it: any) => ({
+          type: (it.type === 'conflict' ? 'error' : it.severity === 'high' ? 'error' : it.severity === 'medium' ? 'warning' : 'info') as 'error' | 'warning' | 'info',
+          message: it.description || it.message || JSON.stringify(it),
+          file: it.file || it.story_id,
+          line: it.line,
+        })),
+        requirements: requirements,
+        prioritizedRequirements: prioritizedRequirements,
+        analysis: analysisRaw, // Pass full analysis structure to preview
+        report: report.final_report_markdown || '',
+        actionItems: report.action_items || [],
+        stakeholderQuestions: report.stakeholder_questions || [],
+        mermaid: report.final_report_mermaid || '',
+      });
+
+        const botMsg: Message = {
+          id: 'm' + Date.now(),
           role: 'assistant',
-          content: '❌ Failed to send message. WebSocket not connected.',
+          content: parts.join('\n'),
           time: new Date().toLocaleTimeString(),
         };
-        setMessages((s) => [...s, errorMsg]);
+        setMessages((s) => [...s, botMsg]);
+      } catch (err: any) {
+        const errMsg: Message = {
+          id: 'err' + Date.now(),
+          role: 'assistant',
+          content: `❌ Lỗi khi gọi API phân tích: ${err?.message || String(err)}`,
+          time: new Date().toLocaleTimeString(),
+        };
+        setMessages((s) => [...s, errMsg]);
+      } finally {
+        setIsLoading(false);
       }
-      // Response sẽ được nhận qua onMessage callback
     } else {
-      // Fallback: không có WebSocket connection
-      setIsLoading(false);
-      const offlineMsg: Message = {
-        id: 'off' + Date.now(),
-        role: 'assistant',
-        content: '⚠️ WebSocket disconnected. Please check backend server at ws://localhost:8000/ws/chat',
-        time: new Date().toLocaleTimeString(),
-      };
-      setMessages((s) => [...s, offlineMsg]);
+      // Route to WebSocket for chat with Gemini agent
+      const sent = websocket.sendMessage(text);
+      if (!sent) {
+        // If WebSocket not connected, show error
+        const errMsg: Message = {
+          id: 'err' + Date.now(),
+          role: 'assistant',
+          content: '❌ Không thể kết nối đến AI Agent. Vui lòng kiểm tra kết nối WebSocket.',
+          time: new Date().toLocaleTimeString(),
+        };
+        setMessages((s) => [...s, errMsg]);
+        setIsLoading(false);
+      }
+      // Loading will be set to false when WebSocket message is received (handled in onMessage callback)
     }
   };
 
@@ -197,7 +281,7 @@ export default function ChatLayout() {
           <ChatMessageList messages={messages} isLoading={isLoading} bottomRef={bottomRef} />
         </div>
         <div className="shrink-0">
-          <ChatInput onSend={handleSend} disabled={!websocket.connected} />
+          <ChatInput onSend={handleSend} disabled={false} />
         </div>
       </div>
 

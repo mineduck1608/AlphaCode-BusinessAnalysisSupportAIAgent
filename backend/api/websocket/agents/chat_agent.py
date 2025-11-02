@@ -48,7 +48,7 @@ class ChatAgent(BaseAgent):
         return response
 
     async def _generate_response(self, message: str) -> str:
-        """Generate response based on message content.
+        """Generate response based on message content using Gemini API.
         
         Args:
             message: User's message
@@ -75,21 +75,151 @@ class ChatAgent(BaseAgent):
         if text.startswith("/whoami"):
             return f"Session ID: {self.session_id}\nConversation messages: {len(self.conversation_history)}"
 
-        # Simulate AI processing delay
-        await asyncio.sleep(0.1)
+        # Check if message contains requirements/stories - route to pipeline
+        # User can mention "Story:" or ask about requirements analysis
+        if "story:" in message.lower() or "/analyze" in text or "/pipeline" in text:
+            return await self._handle_requirements_analysis(message)
 
-        # Generate response based on message content
+        # Use Gemini API for chat if available
+        if genai and GENAI_API_KEY:
+            return await self._call_gemini(message)
+        
+        # Fallback responses if Gemini not available
+        await asyncio.sleep(0.1)
+        
         if "hello" in text or "hi" in text:
-            return f"Hello! How can I assist you today? (Session: {self.session_id[:8]}...)"
+            return f"Hello! I'm your Requirements Engineering Assistant. How can I help you today?"
         
         if "how are you" in text:
-            return "I'm functioning perfectly! Ready to help you with any questions."
+            return "I'm functioning perfectly! I can help you analyze requirements, detect issues, and generate reports."
         
         if "time" in text:
             return f"Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         
-        # Default response with echo
-        return f"I received your message: '{message}'. This is a demo response from the AI agent."
+        # Default fallback
+        return f"Tôi đã nhận được tin nhắn của bạn: '{message}'. Để sử dụng Gemini API, vui lòng cấu hình GENAI_API_KEY trong file .env"
+    
+    async def _handle_requirements_analysis(self, message: str) -> str:
+        """Handle requirements analysis via pipeline.
+        
+        Args:
+            message: User message containing requirements/stories
+            
+        Returns:
+            Response about pipeline analysis
+        """
+        # Import pipeline function and request model
+        try:
+            from api.routers.mcp import run_pipeline, PipelineRequest
+            
+            # Check if message contains raw text or structured stories
+            if "story:" in message.lower():
+                # Create request object for pipeline
+                pipeline_request = PipelineRequest(
+                    raw_text=message,
+                    project_id="default",
+                    stories=None
+                )
+                
+                # Call pipeline in thread (it's a sync function)
+                pipeline_result = await asyncio.to_thread(
+                    run_pipeline,
+                    pipeline_request
+                )
+                
+                if pipeline_result.get("ok"):
+                    stories_count = len(pipeline_result.get("stories", []))
+                    reqs_count = len(pipeline_result.get("requirements", []))
+                    analysis_raw = pipeline_result.get("analysis", {})
+                    analysis = analysis_raw.get("analysis", analysis_raw) if isinstance(analysis_raw, dict) else analysis_raw
+                    issues_count = analysis.get("summary", {}).get("total_issues", 0) if isinstance(analysis, dict) else 0
+                    
+                    return f"""✅ Pipeline phân tích hoàn tất!
+
+📊 Kết quả:
+• {stories_count} story được phát hiện
+• {reqs_count} requirements được tạo
+• {issues_count} vấn đề được phát hiện
+
+Bạn có thể xem chi tiết trong Preview Panel hoặc gọi API /mcp/pipeline để lấy full report."""
+                else:
+                    return f"❌ Lỗi khi chạy pipeline: {pipeline_result.get('error', 'Unknown error')}"
+            else:
+                return "Để phân tích requirements, hãy nhập với format:\nStory: [Title]\n[Description]\nAcceptance Criteria:\n- [Criteria]"
+        except Exception as e:
+            import traceback
+            return f"❌ Lỗi khi xử lý requirements analysis: {str(e)}\n{traceback.format_exc()}"
+    
+    async def _call_gemini(self, message: str) -> str:
+        """Call Gemini API to generate response.
+        
+        Args:
+            message: User message
+            
+        Returns:
+            Generated response from Gemini
+        """
+        try:
+            # Build system instruction
+            system_instruction = """Bạn là Requirements Engineering Assistant, một AI chuyên gia trong việc phân tích và quản lý software requirements.
+
+Nhiệm vụ của bạn:
+- Trả lời câu hỏi về requirements engineering
+- Hướng dẫn người dùng sử dụng hệ thống
+- Giải thích về các agents (Collector, Analyzer, Requirement, Reporter)
+- Tư vấn về best practices trong requirements engineering
+
+Nếu người dùng muốn phân tích requirements, hướng dẫn họ nhập với format:
+Story: [Title]
+[Description]
+Acceptance Criteria:
+- [Criteria]
+
+Hãy trả lời một cách thân thiện, chuyên nghiệp và hữu ích."""
+            
+            # Build chat history for context
+            chat_history = []
+            for msg in self.conversation_history[-10:]:
+                role = "user" if msg["role"] == "user" else "model"
+                chat_history.append({"role": role, "parts": [msg["content"]]})
+            
+            # Create model with system instruction
+            model = genai.GenerativeModel(
+                MODEL,
+                system_instruction=system_instruction
+            )
+            
+            # Start chat if we have history, otherwise single message
+            if chat_history:
+                # Use chat interface for multi-turn conversation
+                chat = model.start_chat(history=chat_history)
+                response = await asyncio.to_thread(
+                    chat.send_message,
+                    message
+                )
+            else:
+                # Single message
+                response = await asyncio.to_thread(
+                    model.generate_content,
+                    message
+                )
+            
+            # Extract text from response
+            if hasattr(response, 'text'):
+                return response.text
+            elif hasattr(response, 'candidates') and response.candidates:
+                if hasattr(response.candidates[0], 'content'):
+                    parts = response.candidates[0].content.parts
+                    if parts and hasattr(parts[0], 'text'):
+                        return parts[0].text
+                return str(response.candidates[0])
+            else:
+                return str(response)
+                
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return f"❌ Lỗi khi gọi Gemini API: {str(e)}\n\nVui lòng kiểm tra:\n1. GENAI_API_KEY đã được cấu hình trong .env\n2. API key có hợp lệ không\n3. Model {MODEL} có sẵn không\n\nChi tiết lỗi:\n{error_details[:500]}"
 
     def _get_help_text(self) -> str:
         """Return help text with available commands."""

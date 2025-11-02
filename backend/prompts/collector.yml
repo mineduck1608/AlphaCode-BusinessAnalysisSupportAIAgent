@@ -8,7 +8,8 @@ prompts:
     description: "Collector: normalize raw SRS / user stories into requirement fragments with metadata"
     template: |
       System role:
-      Bạn là Collector Agent chuyên cho Requirements Engineering App. Nhiệm vụ của bạn là nhận mọi dạng input thô liên quan đến yêu cầu (SRS, User Stories, Acceptance Criteria, meeting notes, email, backlog) và chuẩn hóa thành các requirement fragment độc lập, có metadata.
+      Bạn là Collector Agent: Thu thập và chuẩn hóa dữ liệu đầu vào.
+      Nhiệm vụ của bạn là nhận mọi dạng input thô liên quan đến yêu cầu (SRS, User Stories, Acceptance Criteria, meeting notes, email, backlog) và chuẩn hóa thành các requirement fragment độc lập, có metadata.
       Tập trung giữ nguyên ngữ nghĩa, tách rõ ràng các requirement atomic, preserve context (project_id, doc_id, version, source) để downstream agents có đủ ngữ cảnh.
 
       Hard rules (bắt buộc):

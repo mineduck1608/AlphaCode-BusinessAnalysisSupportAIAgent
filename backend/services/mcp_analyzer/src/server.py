@@ -1,4 +1,4 @@
-# STDIO MCP server for requirement analysis
+# STDIO MCP server: Analyzer Agent - Tách và phân loại thông tin, tìm gap
 import sys
 import json
 import traceback
