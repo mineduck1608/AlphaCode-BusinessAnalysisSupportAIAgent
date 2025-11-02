@@ -10,6 +10,8 @@ import { useWebSocket } from "@/app/lib/hooks/useWebSocket";
 import { getCurrentUser, mockLogout } from "@/app/lib/authMock";
 import { getWebSocketUrl, STORAGE_KEYS, UI_CONFIG } from "@/app/lib/constants";
 import { PanelRightOpen, PanelRightClose } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { conversationApi } from "@/app/api";
 
 export type Message = {
   id: string;
@@ -21,6 +23,7 @@ export type Message = {
 const STORAGE_KEY = STORAGE_KEYS.CHAT_HISTORY;
 
 export default function ChatLayout() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -30,12 +33,40 @@ export default function ChatLayout() {
       return [{ id: "m0", role: "assistant", content: UI_CONFIG.DEFAULT_GREETING, time: new Date().toLocaleTimeString() }];
     }
   });
+  const { id } = useParams()
+  const { getAll, create } = conversationApi;
+  const userId = getCurrentUser()?.id;
+  if (!id) {
+    getAll().then((convs) => {
+      const last = convs.filter(c => c.user_id === userId).sort((a, b) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime())[0];
+      if (last) {
+        location.href = `/chat/${last.id}`;
+      } else {
+
+      }
+    }).catch(() => { });
+  }
   const [isLoading, setIsLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
+  const handleNewChat = async () => {
+    try {
+      const conv = await create({
+        is_shared: false,
+        name: "New Conversation",
+        user_id: user?.id
+      })
+      console.log("Created new conversation:", conv);
+      if (conv.id) {
+        router.push(`/chat/${conv.id}`);
+      }
+    }
+    catch (err) {
+    }
+  }
   // WebSocket connection to backend
   const websocket = useWebSocket({
     url: getWebSocketUrl(),
@@ -80,14 +111,14 @@ export default function ChatLayout() {
   // handle sending via WebSocket
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
-    
+
     // Add user message to UI
     const id = Date.now().toString();
-    const userMsg: Message = { 
-      id, 
-      role: "user", 
-      content: text, 
-      time: new Date().toLocaleTimeString() 
+    const userMsg: Message = {
+      id,
+      role: "user",
+      content: text,
+      time: new Date().toLocaleTimeString()
     };
     setMessages((s) => [...s, userMsg]);
     setIsLoading(true);
@@ -162,26 +193,24 @@ export default function ChatLayout() {
   return (
     <div className="flex h-full w-full bg-[#0f1419] text-white overflow-hidden">
       <ChatSidebar onLogout={handleLogout} userEmail={user?.email} />
-      
+
       {/* Main Chat Area */}
-      <div className={`flex flex-col flex-1 h-full overflow-hidden transition-all duration-300 ${
-        showPreview ? (isPreviewExpanded ? 'w-[40%]' : 'w-[60%]') : 'w-full'
-      }`}>
+      <div className={`flex flex-col flex-1 h-full overflow-hidden transition-all duration-300 ${showPreview ? (isPreviewExpanded ? 'w-[40%]' : 'w-[60%]') : 'w-full'
+        }`}>
         {/* Header with Preview Toggle */}
         <div className="flex items-center border-b border-blue-900/20 bg-[#0a0e13] shadow-lg shrink-0">
           <div className="flex-1">
             <ChatHeader connected={websocket.connected} connecting={websocket.connecting} />
           </div>
-          
+
           {/* Preview Toggle Button - Inside header, not overlapping */}
           <div className="px-4">
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className={`p-2.5 rounded-lg transition-all ${
-                showPreview
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-blue-900/20 text-gray-400 hover:bg-blue-900/40 hover:text-gray-200'
-              }`}
+              className={`p-2.5 rounded-lg transition-all ${showPreview
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-blue-900/20 text-gray-400 hover:bg-blue-900/40 hover:text-gray-200'
+                }`}
               title={showPreview ? 'Hide preview' : 'Show preview'}
             >
               {showPreview ? (
@@ -192,7 +221,7 @@ export default function ChatLayout() {
             </button>
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto">
           <ChatMessageList messages={messages} isLoading={isLoading} bottomRef={bottomRef} />
         </div>
@@ -203,9 +232,8 @@ export default function ChatLayout() {
 
       {/* Preview Panel */}
       {showPreview && (
-        <div className={`h-full transition-all duration-300 ${
-          isPreviewExpanded ? 'w-[60%]' : 'w-[40%]'
-        }`}>
+        <div className={`h-full transition-all duration-300 ${isPreviewExpanded ? 'w-[60%]' : 'w-[40%]'
+          }`}>
           <PreviewPanel
             data={previewData}
             onClose={() => setShowPreview(false)}

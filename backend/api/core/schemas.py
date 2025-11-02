@@ -15,6 +15,11 @@ class PromptCreate(PromptBase):
     pass
 
 
+class PromptUpdate(BaseModel):
+    name: Optional[str] = None
+    content: Optional[str] = None
+
+
 class Prompt(PromptBase):
     id: int
     created_at: datetime
@@ -31,6 +36,10 @@ class RoleBase(BaseModel):
 
 class RoleCreate(RoleBase):
     pass
+
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
 
 
 class Role(RoleBase):
@@ -55,6 +64,15 @@ class AgentCreate(AgentBase):
     pass
 
 
+class AgentUpdate(BaseModel):
+    name: Optional[str] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    avatar_url: Optional[str] = None
+    prompt_id: Optional[int] = None
+    status: Optional[int] = None
+
+
 class Agent(AgentBase):
     id: int
     created_at: datetime
@@ -71,7 +89,13 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    pass
+    password: str
+
+
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
+    role_id: Optional[int] = None
 
 
 class User(UserBase):
@@ -90,7 +114,14 @@ class ConversationBase(BaseModel):
 
 
 class ConversationCreate(ConversationBase):
-    pass
+    is_shared: bool = False
+    summary: Optional[str] = None
+
+
+class ConversationUpdate(BaseModel):
+    name: Optional[str] = None
+    is_shared: Optional[bool] = None
+    summary: Optional[str] = None
 
 
 class Conversation(ConversationBase):
@@ -117,6 +148,10 @@ class ConversationAgentCreate(ConversationAgentBase):
     pass
 
 
+class ConversationAgentUpdate(BaseModel):
+    is_active: Optional[bool] = None
+
+
 class ConversationAgent(ConversationAgentBase):
     id: int
     created_at: datetime
@@ -132,7 +167,13 @@ class SharedConversationBase(BaseModel):
 
 
 class SharedConversationCreate(SharedConversationBase):
-    pass
+    user_id: Optional[int] = None
+    column: Optional[int] = None
+
+
+class SharedConversationUpdate(BaseModel):
+    user_id: Optional[int] = None
+    column: Optional[int] = None
 
 
 class SharedConversation(SharedConversationBase):
@@ -158,6 +199,34 @@ class MessageCreate(MessageBase):
     shared_conversation_id: Optional[int] = None
     user_id: Optional[int] = None
     agent_id: Optional[int] = None
+    reaction: Optional[str] = None
+
+
+class MessageUpdate(BaseModel):
+    content: Optional[str] = None
+    reaction: Optional[str] = None
+    content_type: Optional[int] = None
+    message_type: Optional[int] = None
+
+
+class MessageReactionUpdate(BaseModel):
+    reaction: str
+
+
+class UserMessageCreate(BaseModel):
+    content: str
+    user_id: int
+    conversation_id: int
+    content_type: int = 1
+    message_type: int = 1
+
+
+class AgentMessageCreate(BaseModel):
+    content: str
+    agent_id: int
+    conversation_id: int
+    content_type: int = 1
+    message_type: int = 1
 
 
 class Message(MessageBase):

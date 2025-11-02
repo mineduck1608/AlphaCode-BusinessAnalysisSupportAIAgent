@@ -1,3 +1,4 @@
+'use client'
 import React, { useEffect } from "react";
 import ChatLayout from "@/app/components/chat/ChatLayout";
 import { getCurrentUser } from "@/app/lib/authMock";

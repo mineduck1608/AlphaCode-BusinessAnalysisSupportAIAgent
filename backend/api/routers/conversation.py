@@ -1,10 +1,12 @@
+# conversation.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from api.services.conversation import ConversationService
 from api.core.db import get_session
-from api.core.schemas import Conversation, ConversationAgent
+from api.core.schemas import Conversation, ConversationAgent, ConversationCreate, ConversationUpdate, \
+    ConversationAgentCreate, ConversationAgentUpdate
 
 service = ConversationService()
 
@@ -13,23 +15,18 @@ router = APIRouter(
     tags=["conversation"],
 )
 
-
 @router.post("/", response_model=Conversation)
 async def create_conversation(
-    name: str,
-    user_id: int,
-    is_shared: bool = False,
-    summary: Optional[str] = None,
+    conversation_data: ConversationCreate,
     db: AsyncSession = Depends(get_session)
 ) -> Conversation:
     return await service.create_conversation(
         db,
-        name=name,
-        user_id=user_id,
-        is_shared=is_shared,
-        summary=summary
+        name=conversation_data.name,
+        user_id=conversation_data.user_id,
+        is_shared=conversation_data.is_shared,
+        summary=conversation_data.summary
     )
-
 
 @router.get("/", response_model=List[Conversation])
 async def list_conversations(
@@ -38,7 +35,6 @@ async def list_conversations(
     db: AsyncSession = Depends(get_session)
 ) -> List[Conversation]:
     return await service.list_conversations(db, skip=skip, limit=limit)
-
 
 @router.get("/{conversation_id}", response_model=Conversation)
 async def get_conversation(
@@ -50,26 +46,22 @@ async def get_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
     return convo
 
-
 @router.put("/{conversation_id}", response_model=Conversation)
 async def update_conversation(
     conversation_id: int,
-    name: Optional[str] = None,
-    is_shared: Optional[bool] = None,
-    summary: Optional[str] = None,
+    conversation_data: ConversationUpdate,
     db: AsyncSession = Depends(get_session)
 ) -> Conversation:
     convo = await service.update_conversation(
         db,
         conversation_id,
-        name=name,
-        is_shared=is_shared,
-        summary=summary
+        name=conversation_data.name,
+        is_shared=conversation_data.is_shared,
+        summary=conversation_data.summary
     )
     if not convo:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return convo
-
 
 @router.delete("/{conversation_id}", status_code=204)
 async def delete_conversation(
@@ -80,21 +72,18 @@ async def delete_conversation(
     if not deleted:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-
 @router.post("/{conversation_id}/agents", response_model=ConversationAgent)
 async def add_agent_to_conversation(
     conversation_id: int,
-    agent_id: int,
-    is_active: bool = True,
+    agent_data: ConversationAgentCreate,
     db: AsyncSession = Depends(get_session)
 ) -> ConversationAgent:
     return await service.create_conversation_agent(
         db,
         conversation_id=conversation_id,
-        agent_id=agent_id,
-        is_active=is_active
+        agent_id=agent_data.agent_id,
+        is_active=agent_data.is_active
     )
-
 
 @router.get("/{conversation_id}/agents", response_model=List[ConversationAgent])
 async def list_conversation_agents(
@@ -103,18 +92,16 @@ async def list_conversation_agents(
 ) -> List[ConversationAgent]:
     return await service.list_conversation_agents(db, conversation_id)
 
-
 @router.put("/agents/{ca_id}", response_model=ConversationAgent)
 async def update_conversation_agent(
     ca_id: int,
-    is_active: bool,
+    agent_data: ConversationAgentUpdate,
     db: AsyncSession = Depends(get_session)
 ) -> ConversationAgent:
-    ca = await service.update_conversation_agent(db, ca_id, is_active=is_active)
+    ca = await service.update_conversation_agent(db, ca_id, is_active=agent_data.is_active)
     if not ca:
         raise HTTPException(status_code=404, detail="Conversation Agent not found")
     return ca
-
 
 @router.delete("/agents/{ca_id}", status_code=204)
 async def delete_conversation_agent(

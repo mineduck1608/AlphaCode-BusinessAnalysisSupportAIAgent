@@ -1,28 +1,25 @@
+# shared_conversation.py
 from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
 
 from api.services.shared_conversation import SharedConversationService
 from api.core import schemas
 
-
 router = APIRouter(
     prefix="/shared-conversations",
     tags=["shared_conversation"],
 )
 
+
 @router.post("/", response_model=schemas.SharedConversation, status_code=status.HTTP_201_CREATED)
-def create_shared_conversation(
-        conversation_id: int,
-        user_id: Optional[int] = None,
-        column: Optional[int] = None
-):
+def create_shared_conversation(shared_conv_data: schemas.SharedConversationCreate):
     """Tạo mới shared conversation"""
     service = SharedConversationService()
     try:
         shared_conv = service.create_shared_conversation(
-            conversation_id=conversation_id,
-            user_id=user_id,
-            column=column
+            conversation_id=shared_conv_data.conversation_id,
+            user_id=shared_conv_data.user_id,
+            column=shared_conv_data.column
         )
         return shared_conv
     except Exception as e:
@@ -45,6 +42,7 @@ def get_shared_conversation(shared_conv_id: int):
         )
     
     return shared_conv
+
 
 @router.get("/", response_model=List[schemas.SharedConversation])
 def get_all_shared_conversations(
@@ -89,17 +87,16 @@ def get_shared_conversations_by_user(user_id: int):
 @router.put("/{shared_conv_id}", response_model=schemas.SharedConversation)
 def update_shared_conversation(
         shared_conv_id: int,
-        user_id: Optional[int] = None,
-        column: Optional[int] = None
+        shared_conv_data: schemas.SharedConversationUpdate
 ):
     """Cập nhật shared conversation"""
     service = SharedConversationService()
     
     update_data = {}
-    if user_id is not None:
-        update_data['user_id'] = user_id
-    if column is not None:
-        update_data['column'] = column
+    if shared_conv_data.user_id is not None:
+        update_data['user_id'] = shared_conv_data.user_id
+    if shared_conv_data.column is not None:
+        update_data['column'] = shared_conv_data.column
     
     shared_conv = service.update_shared_conversation(shared_conv_id, **update_data)
     

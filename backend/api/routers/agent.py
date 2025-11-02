@@ -1,3 +1,4 @@
+# agent.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -8,7 +9,6 @@ from api.core import schemas
 
 service = AgentService()
 
-
 router = APIRouter(
     prefix="/agents",
     tags=["agent"],
@@ -16,20 +16,16 @@ router = APIRouter(
 
 @router.post("/", response_model=schemas.Agent)
 async def create_agent(
-    name: str, 
-    provider: str, 
-    model: str, 
-    avatar_url: str, 
-    prompt_id: int, 
+    agent_data: schemas.AgentCreate,
     db: AsyncSession = Depends(get_session)
 ) -> schemas.Agent:
     return await service.create_agent(
-        db, 
-        name=name, 
-        provider=provider, 
-        model=model, 
-        avatar_url=avatar_url, 
-        prompt_id=prompt_id
+        db,
+        name=agent_data.name,
+        provider=agent_data.provider,
+        model=agent_data.model,
+        avatar_url=agent_data.avatar_url,
+        prompt_id=agent_data.prompt_id
     )
 
 @router.get("/", response_model=List[schemas.Agent])
@@ -49,24 +45,19 @@ async def get_agent(agent_id: int, db: AsyncSession = Depends(get_session)) -> s
 
 @router.put("/{agent_id}", response_model=schemas.Agent)
 async def update_agent(
-    agent_id: int, 
-    name: Optional[str] = None, 
-    provider: Optional[str] = None, 
-    model: Optional[str] = None, 
-    avatar_url: Optional[str] = None, 
-    prompt_id: Optional[int] = None,
-    status: Optional[int] = None,
+    agent_id: int,
+    agent_data: schemas.AgentUpdate,
     db: AsyncSession = Depends(get_session)
 ) -> schemas.Agent:
     agent = await service.update_agent(
-        db, 
-        agent_id, 
-        name=name, 
-        provider=provider, 
-        model=model, 
-        avatar_url=avatar_url, 
-        prompt_id=prompt_id,
-        status=status
+        db,
+        agent_id,
+        name=agent_data.name,
+        provider=agent_data.provider,
+        model=agent_data.model,
+        avatar_url=agent_data.avatar_url,
+        prompt_id=agent_data.prompt_id,
+        status=agent_data.status
     )
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")

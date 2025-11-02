@@ -1,40 +1,31 @@
+# message.py
 from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional, Dict, Any
 
 from api.services.message import MessageService
 from api.core import schemas
 
-
 router = APIRouter(
     prefix="/messages",
     tags=["message"],
 )
 
+
 @router.post("/", response_model=schemas.Message, status_code=status.HTTP_201_CREATED)
-def create_message(
-        role: int,
-        content: str,
-        content_type: int,
-        message_type: int,
-        conversation_id: Optional[int] = None,
-        shared_conversation_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        agent_id: Optional[int] = None,
-        reaction: Optional[str] = None
-):
+def create_message(message_data: schemas.MessageCreate):
     """Tạo mới message"""
     service = MessageService()
     try:
         message = service.create_message(
-            role=role,
-            content=content,
-            content_type=content_type,
-            message_type=message_type,
-            conversation_id=conversation_id,
-            shared_conversation_id=shared_conversation_id,
-            user_id=user_id,
-            agent_id=agent_id,
-            reaction=reaction
+            role=message_data.role,
+            content=message_data.content,
+            content_type=message_data.content_type,
+            message_type=message_data.message_type,
+            conversation_id=message_data.conversation_id,
+            shared_conversation_id=message_data.shared_conversation_id,
+            user_id=message_data.user_id,
+            agent_id=message_data.agent_id,
+            reaction=message_data.reaction
         )
         return message
     except Exception as e:
@@ -45,22 +36,16 @@ def create_message(
 
 
 @router.post("/user", response_model=schemas.Message, status_code=status.HTTP_201_CREATED)
-def create_user_message(
-        content: str,
-        user_id: int,
-        conversation_id: int,
-        content_type: int = 1,
-        message_type: int = 1
-):
+def create_user_message(message_data: schemas.UserMessageCreate):
     """Tạo message từ user"""
     service = MessageService()
     try:
         message = service.create_user_message(
-            content=content,
-            user_id=user_id,
-            conversation_id=conversation_id,
-            content_type=content_type,
-            message_type=message_type
+            content=message_data.content,
+            user_id=message_data.user_id,
+            conversation_id=message_data.conversation_id,
+            content_type=message_data.content_type,
+            message_type=message_data.message_type
         )
         return message
     except Exception as e:
@@ -71,22 +56,16 @@ def create_user_message(
 
 
 @router.post("/agent", response_model=schemas.Message, status_code=status.HTTP_201_CREATED)
-def create_agent_message(
-        content: str,
-        agent_id: int,
-        conversation_id: int,
-        content_type: int = 1,
-        message_type: int = 1
-):
+def create_agent_message(message_data: schemas.AgentMessageCreate):
     """Tạo message từ agent"""
     service = MessageService()
     try:
         message = service.create_agent_message(
-            content=content,
-            agent_id=agent_id,
-            conversation_id=conversation_id,
-            content_type=content_type,
-            message_type=message_type
+            content=message_data.content,
+            agent_id=message_data.agent_id,
+            conversation_id=message_data.conversation_id,
+            content_type=message_data.content_type,
+            message_type=message_data.message_type
         )
         return message
     except Exception as e:
@@ -109,6 +88,7 @@ def get_message(message_id: int):
         )
     
     return message
+
 
 @router.get("/", response_model=List[schemas.Message])
 def get_all_messages(
@@ -191,23 +171,20 @@ def get_agent_messages(agent_id: int):
 @router.put("/{message_id}", response_model=schemas.Message)
 def update_message(
         message_id: int,
-        content: Optional[str] = None,
-        reaction: Optional[str] = None,
-        content_type: Optional[int] = None,
-        message_type: Optional[int] = None
+        message_data: schemas.MessageUpdate
 ):
     """Cập nhật message"""
     service = MessageService()
     
     update_data = {}
-    if content is not None:
-        update_data['content'] = content
-    if reaction is not None:
-        update_data['reaction'] = reaction
-    if content_type is not None:
-        update_data['content_type'] = content_type
-    if message_type is not None:
-        update_data['message_type'] = message_type
+    if message_data.content is not None:
+        update_data['content'] = message_data.content
+    if message_data.reaction is not None:
+        update_data['reaction'] = message_data.reaction
+    if message_data.content_type is not None:
+        update_data['content_type'] = message_data.content_type
+    if message_data.message_type is not None:
+        update_data['message_type'] = message_data.message_type
     
     message = service.update_message(message_id, **update_data)
     
@@ -221,10 +198,10 @@ def update_message(
 
 
 @router.patch("/{message_id}/reaction", response_model=schemas.Message)
-def update_message_reaction(message_id: int, reaction: str):
+def update_message_reaction(message_id: int, reaction_data: schemas.MessageReactionUpdate):
     """Cập nhật reaction cho message"""
     service = MessageService()
-    message = service.update_message_reaction(message_id, reaction)
+    message = service.update_message_reaction(message_id, reaction_data.reaction)
     
     if not message:
         raise HTTPException(
