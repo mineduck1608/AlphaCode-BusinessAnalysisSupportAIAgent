@@ -2,10 +2,12 @@
  * Application Constants
  */
 
+const SOCKET_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+
 // WebSocket Configuration
 export const WS_CONFIG = {
-  //BASE_URL: 'wss://9e24ba431b7d.ngrok-free.app',
-  BASE_URL: 'ws://localhost:8000',
+  BASE_URL: SOCKET_BASE_URL,
+  //BASE_URL: 'ws://localhost:8000',
   CHAT_ENDPOINT: '/ws/chat',
   AUTO_RECONNECT: true,
   RECONNECT_INTERVAL: 3000,

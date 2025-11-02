@@ -52,11 +52,8 @@ const AppSidebar: React.FC = () => {
 
       setLoadingConversations(true);
       try {
-        const data = await conversationApi.getAll();
-        const sorted = data.sort(
-          (a, b) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime()
-        );
-        setConversations(sorted.slice(0, 10));
+        const data = await conversationApi.getByUserId(String(userId));
+        setConversations(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch conversations:", err);
         setConversations([]);

@@ -17,6 +17,9 @@ axiosInstance.interceptors.request.use(
   (config) => {
     // Lấy token từ localStorage
     const token = localStorage.getItem('auth_token');
+    
+    config.headers['ngrok-skip-browser-warning'] = 'true';
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -38,17 +41,17 @@ axiosInstance.interceptors.response.use(
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
-    
+
     // Xử lý lỗi 403 - Forbidden
     if (error.response?.status === 403) {
       console.error('Access forbidden');
     }
-    
+
     // Xử lý lỗi 500 - Server Error
     if (error.response?.status >= 500) {
       console.error('Server error:', error.response.data);
     }
-    
+
     return Promise.reject(error);
   }
 );
