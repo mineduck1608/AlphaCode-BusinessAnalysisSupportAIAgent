@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from ..services.agent import AgentService
-from ...core.db import get_session
-from ...core.models import Agent # Giả sử Agent là một model/schema cho response
+from core.db import get_session
+from core.models import Agent # Giả sử Agent là một model/schema cho response
 
 
 router = APIRouter(prefix="/agents", tags=["agents"])
