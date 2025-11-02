@@ -19,6 +19,7 @@ from api.routers import role
 from api.routers import prompt
 from api.routers import message
 from api.routers import shared_conversation
+from api.routers import mcp
 from api.websocket.agents.chat_agent import ChatAgent
 from api.websocket.utils.session import SessionManager
 from api.websocket.utils.message import Message
@@ -52,6 +53,7 @@ app.include_router(role.router, tags=["role"])
 app.include_router(prompt.router, tags=["prompt"])
 app.include_router(message.router, tags=["message"])
 app.include_router(shared_conversation.router, tags=["shared-conversation"])
+app.include_router(mcp.router, tags=["mcp"])
 
 @app.get("/health")
 def healthcheck():
