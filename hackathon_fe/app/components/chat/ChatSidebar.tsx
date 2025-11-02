@@ -60,12 +60,33 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
   };
 
   const handleNewChat = async () => {
+    const fetchConversations = async () => {
+      const userId = localStorage.getItem("user_id");
+      if (!userId) {
+        setConversations([]);
+        return;
+      }
+
+      setLoadingConversations(true);
+      try {
+        const data = await conversationApi.getByUserId(userId);
+        setConversations(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+        setConversations([]);
+      } finally {
+        setLoadingConversations(false);
+      }
+    };
+
+    
     try{
       const newConv = await conversationApi.create({
         name: "New Conversation",
         user_id: getCurrentUserId() || -1,
         is_shared: false
       });
+      fetchConversations();
       router.push('/chat?id=' + newConv.id);
     }
     catch{
