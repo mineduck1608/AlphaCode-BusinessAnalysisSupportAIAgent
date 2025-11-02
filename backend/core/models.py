@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 import datetime
-
-from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, REAL, String
+from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
+from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, REAL, String, Float
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .db import Base
@@ -96,7 +96,7 @@ class Conversation(Base):
     share_token: Mapped[str] = mapped_column(String(255), nullable=False)
     last_updated: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
     summary: Mapped[Optional[str]] = mapped_column(String(255))
-    summary_embedding: Mapped[Optional[float]] = mapped_column(REAL)
+    summary_embedding: Mapped[Optional[List[float]]] = mapped_column(PG_ARRAY(Float))
 
     user: Mapped['User'] = relationship('User', back_populates='conversation')
     conversation_agent: Mapped[list['ConversationAgent']] = relationship('ConversationAgent', back_populates='conversation')

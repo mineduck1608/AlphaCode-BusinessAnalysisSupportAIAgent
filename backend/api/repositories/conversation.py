@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from ...core.models import Conversation, ConversationAgent
+from backend.core.models import Conversation, ConversationAgent
 
 
 class ConversationRepository:
