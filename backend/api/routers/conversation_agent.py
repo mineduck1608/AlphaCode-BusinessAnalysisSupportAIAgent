@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ..services.conversation_agent import ConversationAgentService
-from ...core.db import get_session
-from ...core.models import ConversationAgent
+from backend.api.services.conversation_agent import ConversationAgentService
+from backend.core.db import get_session
+from backend.core.models import ConversationAgent
 
 router = APIRouter(prefix="/conversation-agents", tags=["conversation-agents"])
 service = ConversationAgentService()
