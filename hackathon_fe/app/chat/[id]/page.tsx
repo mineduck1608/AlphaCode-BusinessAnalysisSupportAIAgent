@@ -1,14 +1,14 @@
 'use client'
 import React, { useEffect } from "react";
 import ChatLayout from "@/app/components/chat/ChatLayout";
-import { getCurrentUser } from "@/app/lib/authMock";
+import { getCurrentUserId } from "../../lib/authMock";
 import { useRouter } from "next/navigation";
 
 export default function SpecificChatPage() {
   const router = useRouter();
   
   useEffect(() => {
-    const u = getCurrentUser();
+    const u = getCurrentUserId();
     if (!u) router.replace("/login");
   }, [router]);
 
