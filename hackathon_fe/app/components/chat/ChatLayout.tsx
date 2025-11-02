@@ -7,6 +7,7 @@ import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import { useWebSocket } from "@/app/lib/hooks/useWebSocket";
 import { getCurrentUser, mockLogout } from "@/app/lib/authMock";
+import { getWebSocketUrl, STORAGE_KEYS, UI_CONFIG } from "@/app/lib/constants";
 
 export type Message = {
   id: string;
@@ -15,16 +16,16 @@ export type Message = {
   time?: string;
 };
 
-const STORAGE_KEY = "chatgpt_clone_history_v1";
+const STORAGE_KEY = STORAGE_KEYS.CHAT_HISTORY;
 
 export default function ChatLayout() {
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [{ id: "m0", role: "assistant", content: "Hi there 👋 How can I help you today?", time: new Date().toLocaleTimeString() }];
+      if (!raw) return [{ id: "m0", role: "assistant", content: UI_CONFIG.DEFAULT_GREETING, time: new Date().toLocaleTimeString() }];
       return JSON.parse(raw) as Message[];
     } catch {
-      return [{ id: "m0", role: "assistant", content: "Hi there 👋 How can I help you today?", time: new Date().toLocaleTimeString() }];
+      return [{ id: "m0", role: "assistant", content: UI_CONFIG.DEFAULT_GREETING, time: new Date().toLocaleTimeString() }];
     }
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +33,7 @@ export default function ChatLayout() {
 
   // WebSocket connection to backend
   const websocket = useWebSocket({
-    url: 'ws://localhost:8000/ws/chat',
+    url: getWebSocketUrl(),
     autoConnect: true,
     onMessage: (wsMessage) => {
       // Khi nhận message từ WebSocket, thêm vào chat
