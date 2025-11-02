@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import React from "react";
-import { BoxIconLine, ArrowUpIcon } from "@/icons";
+import { BoxIconLine, ArrowUpIcon } from "@/app/icon/index";
 
 export const metadata: Metadata = {
   title: "Welcome - Dashboard",

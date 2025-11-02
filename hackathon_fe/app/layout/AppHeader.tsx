@@ -1,5 +1,5 @@
 "use client";
-import { useSidebar } from "@/context/SidebarContext";
+import { useSidebar } from "@/app/context/SidebarContext";
 import React, { useRef, useEffect } from "react";
 
 const AppHeader: React.FC = () => {

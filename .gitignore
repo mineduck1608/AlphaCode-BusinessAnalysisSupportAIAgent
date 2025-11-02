@@ -1,0 +1,8 @@
+.env
+backend/.env
+# ignore other local env files
+.env.*
+.venv/
+__pycache__/
+*.pyc
+backend/.env
