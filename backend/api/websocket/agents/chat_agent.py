@@ -1,68 +1,49 @@
-"""Chat agent for Requirements Engineering Assistant."""
+"""Chat agent implementation for handling user conversations."""
 
 import asyncio
-import json
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.websocket.agents.base_agent import BaseAgent
-from api.core.models import Message
+from api.core.models import Conversation, Message
 from api.services.conversation import ConversationService
 from api.core.db import async_session
 
-# Import Google Gemini API
-try:
-    import google.generativeai as genai
-    from api.core.config import settings
-    
-    GENAI_API_KEY = settings.GENAI_API_KEY
-    MODEL = settings.LLM_MODEL
-    
-    if GENAI_API_KEY:
-        genai.configure(api_key=GENAI_API_KEY)
-except Exception as e:
-    genai = None
-    GENAI_API_KEY = None
-    MODEL = None
-    print(f"Warning: Could not load Gemini API: {e}")
-
 
 class ChatAgent(BaseAgent):
-    """Requirements Engineering Assistant.
+    """AI chat agent that processes messages and maintains conversation history.
     
-    Main use case: Analyze requirements and generate context diagram
-    
-    Flow:
-    1. User inputs requirements (raw text or structured format)
-    2. Collect and normalize requirements
-    3. Run analysis pipeline
-    4. Generate context diagram
+    This agent demonstrates how to:
+    - Maintain conversation context
+    - Process different message types
+    - Generate responses with typing simulation
+    - Save messages to database
     """
 
     def __init__(self, session_id: str, user_id: Optional[int] = None, agent_id: Optional[int] = None):
         super().__init__(session_id)
-        self.user_id = user_id or 1
-        self.agent_id = agent_id or 1
+        self.conversation_history = []
+        self.user_name = "User"
+        self.user_id = user_id or 1  # Default user ID, should be from auth
+        self.agent_id = agent_id or 1  # Default agent ID
         self.conversation_id: Optional[int] = None
         self.conversation_service = ConversationService()
-        
-        # State
-        self.conversation_history = []
-        self.collected_requirements: List[str] = []
-        self.pipeline_state = "idle"  # idle | collecting | analyzing
 
     async def initialize_conversation(self, conversation_name: Optional[str] = None):
-        """Initialize conversation in database."""
+        """Initialize or get existing conversation for this session."""
         async with async_session() as db:
+            # Create new conversation if not exists
             if not self.conversation_id:
                 conversation = await self.conversation_service.create_conversation(
                     db=db,
-                    name=conversation_name or f"Requirements {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    name=conversation_name or f"Chat {datetime.now().strftime('%Y-%m-%d %H:%M')}",
                     user_id=self.user_id,
                     is_shared=False
                 )
                 self.conversation_id = conversation.id
                 
+                # Link agent to conversation
                 await self.conversation_service.create_conversation_agent(
                     db=db,
                     conversation_id=self.conversation_id,
@@ -71,31 +52,71 @@ class ChatAgent(BaseAgent):
                 )
 
     async def handle_message(self, message: str) -> str:
-        """Handle incoming message."""
+        """Process incoming message and generate response.
+        
+        Args:
+            message: User's input message
+            
+        Returns:
+            Agent's response text
+        """
+        # Initialize conversation if needed
         if not self.conversation_id:
             await self.initialize_conversation()
         
-        # Save user message
-        self.conversation_history.append({"role": "user", "content": message})
-        await self._save_message(role=1, content=message, user_id=self.user_id)
-        
-        # Generate response
+        # Store user message in memory
+        self.conversation_history.append({
+            "role": "user",
+            "content": message,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        # Save user message to database
+        await self._save_message(
+            role=1,  # 1 = user
+            content=message,
+            content_type=1,  # 1 = text
+            message_type=1,  # 1 = normal message
+            user_id=self.user_id
+        )
+
+        # Parse message and generate response
         response = await self._generate_response(message)
-        
-        # Save response
-        self.conversation_history.append({"role": "assistant", "content": response})
-        await self._save_message(role=2, content=response, agent_id=self.agent_id)
-        
+
+        # Store agent response in memory
+        self.conversation_history.append({
+            "role": "assistant",
+            "content": response,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        # Save agent response to database
+        await self._save_message(
+            role=2,  # 2 = assistant
+            content=response,
+            content_type=1,  # 1 = text
+            message_type=1,  # 1 = normal message
+            agent_id=self.agent_id
+        )
+
         return response
 
-    async def _save_message(self, role: int, content: str, user_id: Optional[int] = None, agent_id: Optional[int] = None):
+    async def _save_message(
+        self,
+        role: int,
+        content: str,
+        content_type: int,
+        message_type: int,
+        user_id: Optional[int] = None,
+        agent_id: Optional[int] = None
+    ):
         """Save message to database."""
         async with async_session() as db:
             message = Message(
                 role=role,
                 content=content,
-                content_type=1,
-                message_type=1,
+                content_type=content_type,
+                message_type=message_type,
                 conversation_id=self.conversation_id,
                 user_id=user_id,
                 agent_id=agent_id,
@@ -106,255 +127,198 @@ class ChatAgent(BaseAgent):
             await db.commit()
 
     async def _generate_response(self, message: str) -> str:
-        """Generate response based on intent."""
-        text = message.strip()
-        text_lower = text.lower()
+        """Generate response based on message content using Gemini API.
         
-        # Commands
-        if text_lower == "ping":
+        Args:
+            message: User's message
+            
+        Returns:
+            Generated response
+        """
+        text = message.strip().lower()
+
+        # Handle special commands
+        if text == "ping":
             return "pong"
         
-        if text_lower.startswith("/help"):
-            return self._get_help()
+        if text.startswith("/help"):
+            return self._get_help_text()
         
-        if text_lower.startswith("/clear"):
-            self.collected_requirements.clear()
-            self.pipeline_state = "idle"
-            return "✅ Đã xóa requirements."
+        if text.startswith("/history"):
+            return self._get_history()
         
-        if text_lower.startswith("/analyze"):
-            if not self.collected_requirements:
-                return "⚠️ Chưa có requirements. Hãy nhập requirements trước."
-            return await self._run_pipeline()
+        if text.startswith("/clear"):
+            self.conversation_history.clear()
+            return "Conversation history cleared."
         
-        if text_lower.startswith("/collect"):
-            self.pipeline_state = "collecting"
-            self.collected_requirements.clear()
-            return "📝 Bắt đầu thu thập requirements. Nhập requirements và gõ /done khi xong."
-        
-        if text_lower.startswith("/done") and self.pipeline_state == "collecting":
-            self.pipeline_state = "idle"
-            if not self.collected_requirements:
-                return "⚠️ Chưa có requirements."
-            return await self._run_pipeline()
-        
-        # Check if message is requirement
-        if self._is_requirement(text):
-            self.collected_requirements.append(text)
-            count = len(self.collected_requirements)
-            return f"✅ Đã lưu requirement #{count}. Gõ /analyze để phân tích."
-        
-        # General chat
+        if text.startswith("/whoami"):
+            return f"Session ID: {self.session_id}\nConversation messages: {len(self.conversation_history)}"
+
+        # Check if message contains requirements/stories - route to pipeline
+        # User can mention "Story:" or ask about requirements analysis
+        if "story:" in message.lower() or "/analyze" in text or "/pipeline" in text:
+            return await self._handle_requirements_analysis(message)
+
+        # Use Gemini API for chat if available
         if genai and GENAI_API_KEY:
-            return await self._call_gemini(text)
+            return await self._call_gemini(message)
         
-        return "Tôi là Requirements Assistant. Nhập requirements để phân tích. Gõ /help để xem hướng dẫn."
-
-    def _is_requirement(self, text: str) -> bool:
-        """Check if text is a requirement."""
-        text_lower = text.lower()
-        patterns = [
-            "story:", "as a ", "as an ", "given ", "when ", "then ",
-            "acceptance criteria:", "requirement:", "the system shall",
-            "the system must", "the user can", "the user should"
-        ]
+        # Fallback responses if Gemini not available
+        await asyncio.sleep(0.1)
         
-        if self.pipeline_state == "collecting":
-            return True
+        if "hello" in text or "hi" in text:
+            return f"Hello! I'm your Requirements Engineering Assistant. How can I help you today?"
         
-        return any(p in text_lower for p in patterns)
-
-    async def _run_pipeline(self) -> str:
-        """Run requirements analysis pipeline using MCP servers."""
+        if "how are you" in text:
+            return "I'm functioning perfectly! I can help you analyze requirements, detect issues, and generate reports."
+        
+        if "time" in text:
+            return f"Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        # Default fallback
+        return f"Tôi đã nhận được tin nhắn của bạn: '{message}'. Để sử dụng Gemini API, vui lòng cấu hình GENAI_API_KEY trong file .env"
+    
+    async def _handle_requirements_analysis(self, message: str) -> str:
+        """Handle requirements analysis via pipeline.
+        
+        Args:
+            message: User message containing requirements/stories
+            
+        Returns:
+            Response about pipeline analysis
+        """
+        # Import pipeline function and request model
         try:
-            self.pipeline_state = "analyzing"
-            raw_text = "\n\n".join(self.collected_requirements)
-            reqs_count = len(self.collected_requirements)
+            from api.routers.mcp import run_pipeline, PipelineRequest
             
-            # Import MCP adapter
-            from api.services import mcp_adapter
-            
-            # Step 1: Collector - ingest raw text
-            ing_resp = await asyncio.to_thread(
-                mcp_adapter.call_mcp,
-                "mcp_collector",
-                "ingest_raw",
-                {"items": [raw_text]}
-            )
-            
-            if ing_resp.get("error"):
-                return f"❌ Lỗi Collector (ingest): {ing_resp.get('error')}"
-            
-            chunks = ing_resp.get("response", {}).get("chunks") or ing_resp.get("chunks") or []
-            
-            # Step 2: Collector - normalize chunks
-            norm_resp = await asyncio.to_thread(
-                mcp_adapter.call_mcp,
-                "mcp_collector",
-                "normalize",
-                {"chunks": chunks}
-            )
-            
-            if norm_resp.get("error"):
-                return f"❌ Lỗi Collector (normalize): {norm_resp.get('error')}"
-            
-            norm_chunks = norm_resp.get("response", {}).get("chunks") or norm_resp.get("chunks") or []
-            
-            # Step 3: Collector - extract stories
-            ext_resp = await asyncio.to_thread(
-                mcp_adapter.call_mcp,
-                "mcp_collector",
-                "extract_stories",
-                {"chunks": norm_chunks}
-            )
-            
-            if ext_resp.get("error"):
-                return f"❌ Lỗi Collector (extract): {ext_resp.get('error')}"
-            
-            stories = ext_resp.get("response", {}).get("stories") or ext_resp.get("stories") or []
-            
-            # Step 4: Analyzer - analyze stories
-            anl_resp = await asyncio.to_thread(
-                mcp_adapter.call_mcp,
-                "mcp_analyzer",
-                "analyze_stories",
-                {"stories": stories}
-            )
-            
-            if anl_resp.get("error"):
-                return f"❌ Lỗi Analyzer: {anl_resp.get('error')}"
-            
-            analysis = anl_resp.get("response", {}) or anl_resp
-            
-            # Step 5: Requirement - identify requirements
-            idr_resp = await asyncio.to_thread(
-                mcp_adapter.call_mcp,
-                "mcp_requirement",
-                "identify_requirements",
-                {"stories": stories, "analysis": analysis}
-            )
-            
-            if idr_resp.get("error"):
-                return f"❌ Lỗi Requirement (identify): {idr_resp.get('error')}"
-            
-            requirements = idr_resp.get("response", {}).get("requirements") or idr_resp.get("requirements") or []
-            
-            # Step 6: Requirement - prioritize
-            pri_resp = await asyncio.to_thread(
-                mcp_adapter.call_mcp,
-                "mcp_requirement",
-                "prioritize",
-                {"requirements": requirements}
-            )
-            
-            if pri_resp.get("error"):
-                return f"❌ Lỗi Requirement (prioritize): {pri_resp.get('error')}"
-            
-            prioritized = pri_resp.get("response", {}) or pri_resp
-            
-            # Step 7: Reporter - build final report with context diagram
-            rep_resp = await asyncio.to_thread(
-                mcp_adapter.call_mcp,
-                "mcp_reporter",
-                "build_final_report",
-                {
-                    "core_requirements": requirements,
-                    "analyzer_output": analysis,
-                    "project_id": f"project_{self.conversation_id}"
-                }
-            )
-            
-            if rep_resp.get("error"):
-                return f"❌ Lỗi Reporter: {rep_resp.get('error')}"
-            
-            report = rep_resp.get("response") or rep_resp
-            
-            # Extract results
-            self.pipeline_state = "idle"
-            stories_count = len(stories)
-            reqs_count = len(requirements)
-            
-            # Get mermaid diagram from report
-            mermaid_diagram = report.get("final_report_mermaid", "")
-            markdown_report = report.get("final_report_markdown", "")
-            
-            # Format result
-            result = f"""✅ Pipeline phân tích hoàn tất!
+            # Check if message contains raw text or structured stories
+            if "story:" in message.lower():
+                # Create request object for pipeline
+                pipeline_request = PipelineRequest(
+                    raw_text=message,
+                    project_id="default",
+                    stories=None
+                )
+                
+                # Call pipeline in thread (it's a sync function)
+                pipeline_result = await asyncio.to_thread(
+                    run_pipeline,
+                    pipeline_request
+                )
+                
+                if pipeline_result.get("ok"):
+                    stories_count = len(pipeline_result.get("stories", []))
+                    reqs_count = len(pipeline_result.get("requirements", []))
+                    analysis_raw = pipeline_result.get("analysis", {})
+                    analysis = analysis_raw.get("analysis", analysis_raw) if isinstance(analysis_raw, dict) else analysis_raw
+                    issues_count = analysis.get("summary", {}).get("total_issues", 0) if isinstance(analysis, dict) else 0
+                    
+                    return f"""✅ Pipeline phân tích hoàn tất!
 
 📊 Kết quả:
-• {reqs_count} requirements ban đầu
-• {stories_count} stories được trích xuất
-• {len(requirements)} core requirements được xác định
+• {stories_count} story được phát hiện
+• {reqs_count} requirements được tạo
+• {issues_count} vấn đề được phát hiện
 
-📈 Context Diagram:
-```mermaid
-{mermaid_diagram}
-```
-
-� Executive Summary:
-{markdown_report[:500]}...
-
-�💾 Đã lưu vào conversation #{self.conversation_id}
-"""
-            
-            # Save full pipeline result to DB
-            await self._save_message(
-                role=3,
-                content=json.dumps({
-                    "type": "pipeline_result",
-                    "project_id": f"project_{self.conversation_id}",
-                    "collector": {
-                        "chunks": len(chunks),
-                        "normalized_chunks": len(norm_chunks),
-                        "stories": stories
-                    },
-                    "analyzer": analysis,
-                    "requirements": requirements,
-                    "prioritized": prioritized,
-                    "report": report
-                }),
-                agent_id=self.agent_id
-            )
-            
-            return result
-            
+Bạn có thể xem chi tiết trong Preview Panel hoặc gọi API /mcp/pipeline để lấy full report."""
+                else:
+                    return f"❌ Lỗi khi chạy pipeline: {pipeline_result.get('error', 'Unknown error')}"
+            else:
+                return "Để phân tích requirements, hãy nhập với format:\nStory: [Title]\n[Description]\nAcceptance Criteria:\n- [Criteria]"
         except Exception as e:
             import traceback
-            self.pipeline_state = "idle"
-            error_detail = traceback.format_exc()
-            return f"❌ Lỗi pipeline: {str(e)}\n\nChi tiết:\n{error_detail[:500]}"
-
+            return f"❌ Lỗi khi xử lý requirements analysis: {str(e)}\n{traceback.format_exc()}"
+    
     async def _call_gemini(self, message: str) -> str:
-        """Call Gemini API."""
+        """Call Gemini API to generate response.
+        
+        Args:
+            message: User message
+            
+        Returns:
+            Generated response from Gemini
+        """
         try:
-            system_instruction = """Bạn là Requirements Engineering Assistant.
-Giúp người dùng phân tích và viết requirements tốt hơn.
-Pipeline: Collector → Analyzer → Requirement → Reporter → Context Diagram"""
+            # Build system instruction
+            system_instruction = """Bạn là Requirements Engineering Assistant, một AI chuyên gia trong việc phân tích và quản lý software requirements.
+
+Nhiệm vụ của bạn:
+- Trả lời câu hỏi về requirements engineering
+- Hướng dẫn người dùng sử dụng hệ thống
+- Giải thích về các agents (Collector, Analyzer, Requirement, Reporter)
+- Tư vấn về best practices trong requirements engineering
+
+Nếu người dùng muốn phân tích requirements, hướng dẫn họ nhập với format:
+Story: [Title]
+[Description]
+Acceptance Criteria:
+- [Criteria]
+
+Hãy trả lời một cách thân thiện, chuyên nghiệp và hữu ích."""
             
-            model = genai.GenerativeModel(MODEL, system_instruction=system_instruction)
-            response = await asyncio.to_thread(model.generate_content, message)
+            # Build chat history for context
+            chat_history = []
+            for msg in self.conversation_history[-10:]:
+                role = "user" if msg["role"] == "user" else "model"
+                chat_history.append({"role": role, "parts": [msg["content"]]})
             
+            # Create model with system instruction
+            model = genai.GenerativeModel(
+                MODEL,
+                system_instruction=system_instruction
+            )
+            
+            # Start chat if we have history, otherwise single message
+            if chat_history:
+                # Use chat interface for multi-turn conversation
+                chat = model.start_chat(history=chat_history)
+                response = await asyncio.to_thread(
+                    chat.send_message,
+                    message
+                )
+            else:
+                # Single message
+                response = await asyncio.to_thread(
+                    model.generate_content,
+                    message
+                )
+            
+            # Extract text from response
             if hasattr(response, 'text'):
                 return response.text
-            return str(response)
+            elif hasattr(response, 'candidates') and response.candidates:
+                if hasattr(response.candidates[0], 'content'):
+                    parts = response.candidates[0].content.parts
+                    if parts and hasattr(parts[0], 'text'):
+                        return parts[0].text
+                return str(response.candidates[0])
+            else:
+                return str(response)
+                
         except Exception as e:
-            return f"❌ Lỗi Gemini: {str(e)}"
+            import traceback
+            error_details = traceback.format_exc()
+            return f"❌ Lỗi khi gọi Gemini API: {str(e)}\n\nVui lòng kiểm tra:\n1. GENAI_API_KEY đã được cấu hình trong .env\n2. API key có hợp lệ không\n3. Model {MODEL} có sẵn không\n\nChi tiết lỗi:\n{error_details[:500]}"
 
-    def _get_help(self) -> str:
-        """Return help text."""
-        return """🤖 Requirements Engineering Assistant
+    def _get_help_text(self) -> str:
+        """Return help text with available commands."""
+        return """Available commands:
+/help - Show this help message
+/history - Show conversation history
+/clear - Clear conversation history
+/whoami - Show session information
+ping - Test connection
 
-📝 Nhập Requirements:
-• Story: [Title]
-• As a [role], I want [feature]
-• Given [context] When [action] Then [result]
+You can also send any message and I'll respond!"""
 
-🔧 Commands:
-• /collect - Bắt đầu thu thập
-• /analyze - Phân tích requirements
-• /done - Kết thúc và phân tích
-• /clear - Xóa requirements
-• /help - Hiển thị help
-
-🔄 Pipeline:
-Collector → Analyzer → Requirement → Reporter → Diagram"""
+    def _get_history(self) -> str:
+        """Return formatted conversation history."""
+        if not self.conversation_history:
+            return "No conversation history yet."
+        
+        history_text = "Conversation History:\n" + "="*50 + "\n"
+        for idx, msg in enumerate(self.conversation_history[-10:], 1):  # Last 10 messages
+            role = "You" if msg["role"] == "user" else "Agent"
+            history_text += f"{idx}. [{role}]: {msg['content'][:100]}\n"
+        
+        return history_text
