@@ -1,0 +1,1 @@
+# common client talk to MCP servers
