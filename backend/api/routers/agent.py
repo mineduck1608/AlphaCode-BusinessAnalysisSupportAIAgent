@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ..services.agent import AgentService
+from api.services.agent import AgentService
 from api.core.db import get_session
 from api.core import schemas
 

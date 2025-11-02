@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Giả định có hàm hash password
 # from ...core.security import get_password_hash 
 
-from ..repositories.user import UserRepository
+from api.repositories.user import UserRepository
 from api.core.models import User
 
 

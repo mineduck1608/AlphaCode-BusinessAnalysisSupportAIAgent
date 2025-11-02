@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..repositories.prompt import PromptRepository
+from api.repositories.prompt import PromptRepository
 from api.core.models import Prompt
 
 

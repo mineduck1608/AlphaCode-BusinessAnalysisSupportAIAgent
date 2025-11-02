@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..repositories.role import RoleRepository
+from api.repositories.role import RoleRepository
 from api.core.models import Role
 
 
