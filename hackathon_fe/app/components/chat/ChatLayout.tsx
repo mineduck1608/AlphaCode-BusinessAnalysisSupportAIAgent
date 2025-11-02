@@ -8,10 +8,11 @@ import ChatInput from "./ChatInput";
 import PreviewPanel from "./PreviewPanel";
 import { useWebSocket } from "@/app/lib/hooks/useWebSocket";
 import { getCurrentUserId, logout } from "@/app/lib/authMock";
-import { getWebSocketUrl, STORAGE_KEYS, UI_CONFIG } from "@/app/lib/constants";
+import { getWebSocketUrl, UI_CONFIG } from "@/app/lib/constants";
 import { PanelRightOpen, PanelRightClose } from "lucide-react";
 import { messageApi } from "@/app/api/messageApi";
 import type { Message as APIMessage } from "@/app/types/message";
+import { useSearchParams } from "next/navigation";
 
 export type Message = {
   id: string;
@@ -20,19 +21,12 @@ export type Message = {
   time?: string;
 };
 
-const STORAGE_KEY = STORAGE_KEYS.CHAT_HISTORY;
-
 export default function ChatLayout() {
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [{ id: "m0", role: "assistant", content: UI_CONFIG.DEFAULT_GREETING, time: new Date().toLocaleTimeString() }];
-      return JSON.parse(raw) as Message[];
-    } catch {
-      return [{ id: "m0", role: "assistant", content: UI_CONFIG.DEFAULT_GREETING, time: new Date().toLocaleTimeString() }];
-    }
-  });
+  const searchParams = useSearchParams();
+  const conversationIdFromUrl = searchParams.get('id');
+  
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(conversationIdFromUrl);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
@@ -74,17 +68,35 @@ export default function ChatLayout() {
     },
   });
 
+  // Sync conversation ID từ URL
+  useEffect(() => {
+    if (conversationIdFromUrl && conversationIdFromUrl !== currentConversationId) {
+      setCurrentConversationId(conversationIdFromUrl);
+    }
+  }, [conversationIdFromUrl, currentConversationId]);
+
   // Load messages khi conversation ID thay đổi
   useEffect(() => {
     const loadMessages = async () => {
-      if (!currentConversationId) return;
+      if (!currentConversationId) {
+        // Không có conversation, hiển thị welcome message
+        setMessages([{ 
+          id: "welcome", 
+          role: "assistant", 
+          content: UI_CONFIG.DEFAULT_GREETING, 
+          time: new Date().toLocaleTimeString() 
+        }]);
+        return;
+      }
       
       try {
         setIsLoading(true);
+        // Clear messages cũ trước khi load
+        setMessages([]);
+        
         const apiMessages = await messageApi.getByConversationId(currentConversationId);
         
         // Convert API messages to UI messages
-        // Giả sử: role = 1 là user, role khác là assistant
         const uiMessages: Message[] = apiMessages.map((msg: APIMessage) => ({
           id: msg.id.toString(),
           role: msg.user_id ? 'user' : 'assistant', // Nếu có user_id thì là user message
@@ -95,12 +107,28 @@ export default function ChatLayout() {
         setMessages(uiMessages);
       } catch (error) {
         console.error('Failed to load messages:', error);
-        setMessages([{ 
-          id: "error", 
-          role: "assistant", 
-          content: "❌ Failed to load conversation messages.", 
-          time: new Date().toLocaleTimeString() 
-        }]);
+        
+        // Nếu conversation chưa có messages, hiển thị welcome message
+        const errorMessage = error instanceof Error ? error.message : '';
+        const errorDetail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+        
+        if (errorDetail === "No messages found for this conversation" || 
+            errorMessage.includes("No messages found")) {
+          setMessages([{ 
+            id: "welcome", 
+            role: "assistant", 
+            content: "👋 Start a new conversation! Send your first message below.", 
+            time: new Date().toLocaleTimeString() 
+          }]);
+        } else {
+          // Lỗi thật sự thì mới hiển thị error message
+          setMessages([{ 
+            id: "error", 
+            role: "assistant", 
+            content: "❌ Failed to load conversation messages.", 
+            time: new Date().toLocaleTimeString() 
+          }]);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -109,9 +137,8 @@ export default function ChatLayout() {
     loadMessages();
   }, [currentConversationId]);
 
+  // Auto scroll khi có messages mới
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    // auto scroll
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
@@ -203,7 +230,7 @@ export default function ChatLayout() {
   };
 
   return (
-    <div className="flex h-full w-full bg-[#0f1419] text-white overflow-hidden">
+    <div className="flex h-full w-full bg-background text-white overflow-hidden">
       <ChatSidebar onLogout={handleLogout} />
       
       {/* Main Chat Area */}
