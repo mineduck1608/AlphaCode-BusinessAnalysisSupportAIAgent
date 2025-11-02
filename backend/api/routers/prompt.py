@@ -7,8 +7,13 @@ from api.core.db import get_session
 from api.core import schemas
 
 
-router = APIRouter(prefix="/prompts", tags=["prompts"])
 service = PromptService()
+
+router = APIRouter(
+    prefix="/prompts",
+    tags=["prompt"],
+)
+
 
 @router.post("/", response_model=schemas.Prompt)
 async def create_prompt(

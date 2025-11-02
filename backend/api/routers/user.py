@@ -6,8 +6,12 @@ from api.services.user import UserService
 from api.core.db import get_session
 from api.core import schemas
 
+router = APIRouter(
+    prefix="/users",
+    tags=["user"],
+)
 
-router = APIRouter(prefix="/users", tags=["users"])
+
 service = UserService()
 
 @router.post("/", response_model=schemas.User)

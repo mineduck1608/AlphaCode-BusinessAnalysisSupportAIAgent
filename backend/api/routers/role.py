@@ -7,8 +7,13 @@ from api.core.db import get_session
 from api.core import schemas
 
 
-router = APIRouter(prefix="/roles", tags=["roles"])
 service = RoleService()
+
+router = APIRouter(
+    prefix="/roles",
+    tags=["role"],
+)
+
 
 @router.post("/", response_model=schemas.Role)
 async def create_role(name: str, db: AsyncSession = Depends(get_session)) -> schemas.Role:

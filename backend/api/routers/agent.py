@@ -6,8 +6,13 @@ from api.services.agent import AgentService
 from api.core.db import get_session
 from api.core import schemas
 
-router = APIRouter(prefix="/agents", tags=["agents"])
 service = AgentService()
+
+
+router = APIRouter(
+    prefix="/agents",
+    tags=["agent"],
+)
 
 @router.post("/", response_model=schemas.Agent)
 async def create_agent(

@@ -6,9 +6,12 @@ from api.services.conversation_agent import ConversationAgentService
 from api.core.db import get_session
 from api.core import schemas
 
-router = APIRouter(prefix="/conversation-agents", tags=["conversation-agents"])
 service = ConversationAgentService()
 
+router = APIRouter(
+    prefix="/conversation-agents",
+    tags=["conversation_agent"],
+)
 
 @router.post("/{conversation_id}/agents", response_model=schemas.ConversationAgent)
 async def create_conversation_agent(

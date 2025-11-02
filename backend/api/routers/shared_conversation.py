@@ -3,8 +3,12 @@ from typing import List, Optional
 
 from api.services.shared_conversation import SharedConversationService
 from api.core import schemas
-router = APIRouter(prefix="/shared-conversations", tags=["shared_conversations"])
 
+
+router = APIRouter(
+    prefix="/shared-conversations",
+    tags=["shared_conversation"],
+)
 
 @router.post("/", response_model=schemas.SharedConversation, status_code=status.HTTP_201_CREATED)
 def create_shared_conversation(

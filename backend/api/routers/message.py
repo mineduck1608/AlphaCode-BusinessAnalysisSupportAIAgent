@@ -4,8 +4,11 @@ from typing import List, Optional, Dict, Any
 from api.services.message import MessageService
 from api.core import schemas
 
-router = APIRouter(prefix="/messages", tags=["messages"])
 
+router = APIRouter(
+    prefix="/messages",
+    tags=["message"],
+)
 
 @router.post("/", response_model=schemas.Message, status_code=status.HTTP_201_CREATED)
 def create_message(

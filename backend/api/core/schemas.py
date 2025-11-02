@@ -98,7 +98,7 @@ class Conversation(ConversationBase):
     created_at: datetime
     status: int
     is_shared: bool = False
-    share_token: Optional[str] = None
+    session: Optional[str] = None
     last_updated: Optional[datetime] = None
     summary: Optional[str] = None
     summary_embedding: Optional[List[float]] = None
