@@ -1,14 +1,16 @@
 "use client";
-  
-import React from "react";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useSidebar } from "../context/SidebarContext";
+import { useSidebar } from "../../context/SidebarContext";
 import { BoxIconLine } from "@/app/icon/index";
 import { cn } from "@/app/lib/utils";
 import { Plus, MessageSquare, Settings, LogOut } from "lucide-react";
-import { getCurrentUser, mockLogout } from "@/app/lib/authMock";
+import { getCurrentUserId, logout } from "../../lib/authMock";
+import { conversationApi } from "@/app/api/conversationApi";
+import { Conversation } from "@/app/types/conversation";
 
 type NavItem = {
   name: string;
@@ -22,25 +24,57 @@ const navItems: NavItem[] = [
     name: "Welcome",
     path: "/",
   },
-//   {
-//     icon: <BoxIconLine className="w-5 h-5" />,
-//     name: "Homepage",
-//     path: "/chat",
-//   },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
-  const user = getCurrentUser();
+
+  const [userId, setUserId] = useState<number | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
 
   const isActive = (path: string) => path === pathname;
-  const isChatPage = pathname.startsWith('/chat');
+  const isChatPage = pathname.startsWith("/chat");
+
+  // Check user_id on mount
+  useEffect(() => {
+    const id = getCurrentUserId();
+    setUserId(id);
+    if (!id) router.replace("/login");
+  }, [router]);
+
+  // Fetch conversations if logged in
+  useEffect(() => {
+    const fetchConversations = async () => {
+      if (!userId) return;
+
+      setLoadingConversations(true);
+      try {
+        const data = await conversationApi.getAll();
+        const sorted = data.sort(
+          (a, b) => new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime()
+        );
+        setConversations(sorted.slice(0, 10));
+      } catch (err) {
+        console.error("Failed to fetch conversations:", err);
+        setConversations([]);
+      } finally {
+        setLoadingConversations(false);
+      }
+    };
+
+    fetchConversations();
+  }, [userId]);
 
   const handleLogout = () => {
-    mockLogout();
-    router.push('/login');
+    logout();
+    router.push("/login");
+  };
+
+  const handleConversationClick = (conversationId: string) => {
+    router.push(`/chat?id=${conversationId}`);
   };
 
   return (
@@ -59,20 +93,20 @@ const AppSidebar: React.FC = () => {
         <Link href="/" className="flex items-center gap-3">
           {isExpanded || isHovered || isMobileOpen ? (
             <div className="flex items-center gap-3">
-              <Image 
-                src="/logo2.png" 
-                alt="AlphaCode Logo" 
-                width={32} 
+              <Image
+                src="/logo2.png"
+                alt="AlphaCode Logo"
+                width={32}
                 height={32}
                 className="w-8 h-8 object-contain"
               />
               <span className="font-bold text-xl text-foreground">AlphaCode</span>
             </div>
           ) : (
-            <Image 
-              src="/logo2.png" 
-              alt="AlphaCode Logo" 
-              width={32} 
+            <Image
+              src="/logo2.png"
+              alt="AlphaCode Logo"
+              width={32}
               height={32}
               className="w-8 h-8 object-contain"
             />
@@ -82,7 +116,6 @@ const AppSidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {/* New Chat Button */}
         <Link
           href="/chat"
           className={cn(
@@ -92,12 +125,9 @@ const AppSidebar: React.FC = () => {
           )}
         >
           <Plus className="w-5 h-5 flex-shrink-0" />
-          {(isExpanded || isHovered || isMobileOpen) && (
-            <span className="flex-1 font-medium text-sm">New Chat</span>
-          )}
+          {(isExpanded || isHovered || isMobileOpen) && <span className="flex-1 font-medium text-sm">New Chat</span>}
         </Link>
 
-        {/* Separator */}
         <div className="py-2">
           <div className="border-t border-border"></div>
         </div>
@@ -114,19 +144,14 @@ const AppSidebar: React.FC = () => {
               !isExpanded && !isHovered && "lg:justify-center"
             )}
           >
-            {/* Icon */}
-            <span className="flex-shrink-0">
-              {nav.icon}
-            </span>
-
-            {/* Text */}
+            <span className="flex-shrink-0">{nav.icon}</span>
             {(isExpanded || isHovered || isMobileOpen) && (
               <span className="flex-1 font-medium text-sm">{nav.name}</span>
             )}
           </Link>
         ))}
 
-        {/* Chat History Section - Only show on chat pages */}
+        {/* Chat History */}
         {isChatPage && (isExpanded || isHovered || isMobileOpen) && (
           <>
             <div className="py-2">
@@ -134,36 +159,46 @@ const AppSidebar: React.FC = () => {
             </div>
             <div className="space-y-1">
               <div className="px-3 py-2 text-xs text-muted-foreground font-medium">Recent Chats</div>
-              <button className="w-full px-3 py-2 rounded-lg hover:bg-accent text-left text-sm text-muted-foreground hover:text-accent-foreground transition-colors flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Project ideas</span>
-              </button>
-              <button className="w-full px-3 py-2 rounded-lg hover:bg-accent text-left text-sm text-muted-foreground hover:text-accent-foreground transition-colors flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Study notes</span>
-              </button>
-              <button className="w-full px-3 py-2 rounded-lg hover:bg-accent text-left text-sm text-muted-foreground hover:text-accent-foreground transition-colors flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Recipes</span>
-              </button>
+              {loadingConversations ? (
+                <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
+              ) : conversations.length > 0 ? (
+                conversations.map((conv) => (
+                  <button
+                    key={conv.id}
+                    onClick={() => handleConversationClick(conv.id)}
+                    className={cn(
+                      "w-full px-3 py-2 rounded-lg hover:bg-accent text-left text-sm transition-colors flex items-center gap-2",
+                      pathname.includes(conv.id)
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:text-accent-foreground"
+                    )}
+                    title={conv.name || conv.summary || `Conversation ${conv.id.slice(0, 8)}`}
+                  >
+                    <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{conv.name || conv.summary || `Chat ${conv.id.slice(0, 8)}`}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-xs text-muted-foreground">No conversations yet</div>
+              )}
             </div>
           </>
         )}
       </nav>
 
-      {/* User Section - Only show when expanded/hovered */}
-      {user && (isExpanded || isHovered || isMobileOpen) && (
+      {/* User Section */}
+      {userId && (isExpanded || isHovered || isMobileOpen) && (
         <div className="p-4 border-t border-border space-y-3">
-          <div className="text-xs text-muted-foreground px-2">{user.email}</div>
+          <div className="text-xs text-muted-foreground px-2">User ID: {userId}</div>
           <div className="flex gap-2">
-            <button 
+            <button
               className="flex-1 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg hover:bg-accent transition-colors"
               onClick={() => alert("Settings (mock)")}
             >
               <Settings size={16} />
               <span className="text-xs">Settings</span>
             </button>
-            <button 
+            <button
               className="flex items-center justify-center gap-2 text-sm text-rose-500 hover:text-rose-600 px-3 py-2 rounded-lg hover:bg-accent transition-colors"
               onClick={handleLogout}
             >
@@ -174,17 +209,15 @@ const AppSidebar: React.FC = () => {
         </div>
       )}
 
-      {/* User Icon Only - Show when collapsed and user exists */}
-      {user && !isExpanded && !isHovered && !isMobileOpen && (
+      {/* User Icon Only */}
+      {userId && !isExpanded && !isHovered && !isMobileOpen && (
         <div className="p-4 border-t border-border">
-          <button 
+          <button
             className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-accent transition-colors"
-            title={user.email}
+            title={`User ID: ${userId}`}
           >
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground font-medium text-sm">
-                {user.email.charAt(0).toUpperCase()}
-              </span>
+              <span className="text-primary-foreground font-medium text-sm">{userId}</span>
             </div>
           </button>
         </div>

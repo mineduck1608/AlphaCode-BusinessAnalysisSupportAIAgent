@@ -7,7 +7,7 @@ from api.core import schemas
 
 router = APIRouter(
     prefix="/shared-conversations",
-    tags=["shared_conversation"],
+    tags=["shared-conversation"],
 )
 
 @router.post("/", response_model=schemas.SharedConversation, status_code=status.HTTP_201_CREATED)

@@ -1,10 +1,10 @@
 "use client";
 
 import { useSidebar } from "@/app/context/SidebarContext";
-import AppFooter from "@/app/layout/AppFooter";
-import AppHeader from "@/app/layout/AppHeader";
-import AppSidebar from "@/app/layout/AppSidebar";
-import Backdrop from "@/app/layout/Backdrop";
+import AppFooter from "@/app/icon/layout/AppFooter";
+import AppHeader from "@/app/icon/layout/AppHeader";
+import AppSidebar from "@/app/icon/layout/AppSidebar";
+import Backdrop from "@/app/icon/layout/Backdrop";
 import React from "react";
 
 

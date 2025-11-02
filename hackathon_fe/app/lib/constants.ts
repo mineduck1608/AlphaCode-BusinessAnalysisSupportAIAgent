@@ -4,7 +4,8 @@
 
 // WebSocket Configuration
 export const WS_CONFIG = {
-  BASE_URL: 'wss://9e24ba431b7d.ngrok-free.app',
+  //BASE_URL: 'wss://9e24ba431b7d.ngrok-free.app',
+  BASE_URL: 'ws://localhost:8000',
   CHAT_ENDPOINT: '/ws/chat',
   AUTO_RECONNECT: true,
   RECONNECT_INTERVAL: 3000,

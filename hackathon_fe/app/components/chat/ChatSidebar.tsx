@@ -1,16 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Plus, MessageSquare, Settings, LogOut, User, Share2, Clock, Globe } from "lucide-react";
 import ShareDialog from "./ShareDialog";
 import SharedConversationsList from "./SharedConversationsList";
 import { getAllConversations, type ShareableConversation } from "@/app/lib/shareMockAPI";
+import { conversationApi } from "@/app/api/conversationApi";
+import { Conversation } from "@/app/types/conversation";
+import { useRouter } from "next/navigation";
 
 export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => void; userEmail?: string | undefined }) {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<ShareableConversation | null>(null);
   const [activeTab, setActiveTab] = useState<"recent" | "shared">("recent");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const router = useRouter();
+
+  // Fetch conversations when component mounts
+  useEffect(() => {
+    const fetchConversations = async () => {
+      setLoadingConversations(true);
+      try {
+        const data = await conversationApi.getAll();
+        // Sort by last_updated descending to show most recent first
+        const sortedData = data.sort((a, b) => 
+          new Date(b.last_updated).getTime() - new Date(a.last_updated).getTime()
+        );
+        setConversations(sortedData.slice(0, 10)); // Show only 10 most recent
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+        setConversations([]);
+      } finally {
+        setLoadingConversations(false);
+      }
+    };
+
+    fetchConversations();
+  }, []);
 
   const handleShareClick = async () => {
     // Get first conversation for demo (trong thực tế sẽ get conversation hiện tại)
@@ -19,6 +47,10 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
       setSelectedConversation(conversations[0]);
       setShowShareDialog(true);
     }
+  };
+
+  const handleConversationClick = (conversationId: string) => {
+    router.push(`/chat?id=${conversationId}`);
   };
   return (
     <div className="w-72 bg-background flex flex-col border-r border-blue-900/20">
@@ -77,24 +109,30 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
           <div className="p-3">
             <div className="text-xs font-semibold text-blue-400 mb-3 px-2 uppercase tracking-wider">Recent Chats</div>
             <div className="space-y-1">
-              <div className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20">
-                <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
-                  <MessageSquare size={14} className="text-blue-400" />
-                  <span className="truncate">Project ideas</span>
-                </div>
-              </div>
-              <div className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20">
-                <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
-                  <MessageSquare size={14} className="text-blue-400" />
-                  <span className="truncate">Study notes</span>
-                </div>
-              </div>
-              <div className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20">
-                <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
-                  <MessageSquare size={14} className="text-blue-400" />
-                  <span className="truncate">Recipes</span>
-                </div>
-              </div>
+              {loadingConversations ? (
+                <div className="px-3 py-2 text-xs text-gray-400">Loading conversations...</div>
+              ) : conversations.length > 0 ? (
+                conversations.map((conversation) => (
+                  <div 
+                    key={conversation.id}
+                    onClick={() => handleConversationClick(conversation.id)}
+                    className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20"
+                    title={conversation.name || conversation.summary || `Conversation ${conversation.id.slice(0, 8)}`}
+                  >
+                    <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
+                      <MessageSquare size={14} className="text-blue-400" />
+                      <span className="truncate">
+                        {conversation.name || conversation.summary || `Chat ${conversation.id.slice(0, 8)}`}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 px-5">
+                      {new Date(conversation.last_updated).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-xs text-gray-400">No conversations yet</div>
+              )}
             </div>
           </div>
         ) : (

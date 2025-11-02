@@ -19,6 +19,7 @@ from api.routers import role
 from api.routers import prompt
 from api.routers import message
 from api.routers import shared_conversation
+from api.routers import mcp
 from api.websocket.agents.chat_agent import ChatAgent
 from api.websocket.utils.session import SessionManager
 from api.websocket.utils.message import Message
@@ -52,6 +53,7 @@ app.include_router(role.router, tags=["role"])
 app.include_router(prompt.router, tags=["prompt"])
 app.include_router(message.router, tags=["message"])
 app.include_router(shared_conversation.router, tags=["shared-conversation"])
+app.include_router(mcp.router, tags=["mcp"])
 
 @app.get("/health")
 def healthcheck():
@@ -67,12 +69,45 @@ async def get_ws_stats():
         "active_sessions": session_manager.get_active_count(),
     })
 
+@app.get("/ws/conversation/{conversation_id}/messages")
+async def get_conversation_messages(conversation_id: int):
+    """Get all messages from a conversation."""
+    from api.core.db import async_session
+    from api.core.models import Message
+    from sqlalchemy import select
+    
+    async with async_session() as db:
+        stmt = select(Message).where(
+            Message.conversation_id == conversation_id
+        ).order_by(Message.created_at.asc())
+        result = await db.execute(stmt)
+        messages = result.scalars().all()
+        
+        return [{
+            "id": msg.id,
+            "role": msg.role,
+            "content": msg.content,
+            "user_id": msg.user_id,
+            "agent_id": msg.agent_id,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None
+        } for msg in messages]
+
 @app.websocket("/ws/chat")
-async def websocket_chat_endpoint(websocket: WebSocket):
+async def websocket_chat_endpoint(
+    websocket: WebSocket,
+    user_id: int = 1,  # Default user ID, should be from auth token
+    agent_id: int = 1,  # Default agent ID
+    conversation_id: int = None  # Optional: continue existing conversation
+):
     """WebSocket endpoint for chat communication.
     
     Each connection creates a new session with its own agent instance.
     Messages are processed by the agent and responses are pushed back to the client.
+    
+    Query parameters:
+    - user_id: User ID (default: 1)
+    - agent_id: Agent ID (default: 1)
+    - conversation_id: Optional conversation ID to continue existing chat
     """
     session_id = str(uuid.uuid4())
     agent = None
@@ -80,10 +115,14 @@ async def websocket_chat_endpoint(websocket: WebSocket):
     try:
         # Accept WebSocket connection
         await websocket.accept()
-        logger.info(f"New WebSocket connection: {session_id}")
+        logger.info(f"New WebSocket connection: {session_id} (user={user_id}, agent={agent_id})")
         
         # Create agent instance for this session
-        agent = ChatAgent(session_id)
+        agent = ChatAgent(session_id, user_id=user_id, agent_id=agent_id)
+        
+        # Set conversation ID if continuing existing chat
+        if conversation_id:
+            agent.conversation_id = conversation_id
         
         # Register session
         session_manager.register(session_id, websocket, agent)

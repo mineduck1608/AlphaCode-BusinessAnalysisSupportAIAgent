@@ -14,7 +14,7 @@ COPY .env /app/.env
 
 # Sao chép file requirements.txt TỪ thư mục api
 # SỬA LỖI: Sử dụng đường dẫn api/requirements.txt để khắc phục lỗi 'not found'
-COPY api/requirements.txt /app/
+COPY requirements.txt /app/
 
 # Cài đặt dependencies
 RUN pip install --no-cache-dir -r requirements.txt

@@ -16,6 +16,11 @@ class ConversationRepository:
         stmt = select(Conversation).where(Conversation.id == conversation_id)
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
+    
+    async def get_conversation_by_user_id(self, db: AsyncSession, user_id: int) -> List[Conversation]:
+        stmt = select(Conversation).where(Conversation.user_id == user_id)
+        result = await db.execute(stmt)
+        return result.scalars().all()
 
     async def list_conversations(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Conversation]:
         stmt = select(Conversation).offset(skip).limit(limit)

@@ -13,6 +13,12 @@ router = APIRouter(
     tags=["conversation"],
 )
 
+@router.get("/user/{user_id}", response_model=List[Conversation])
+async def get_conversations_by_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_session)
+) -> List[Conversation]:
+    return await service.get_conversations_by_user_id(db, user_id)
 
 @router.post("/", response_model=Conversation)
 async def create_conversation(

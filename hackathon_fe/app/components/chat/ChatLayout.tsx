@@ -7,7 +7,7 @@ import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import PreviewPanel from "./PreviewPanel";
 import { useWebSocket } from "@/app/lib/hooks/useWebSocket";
-import { getCurrentUser, mockLogout } from "@/app/lib/authMock";
+import { getCurrentUserId, logout } from "@/app/lib/authMock";
 import { getWebSocketUrl, STORAGE_KEYS, UI_CONFIG } from "@/app/lib/constants";
 import { PanelRightOpen, PanelRightClose } from "lucide-react";
 
@@ -153,15 +153,15 @@ export default function ChatLayout() {
   };
 
   const handleLogout = () => {
-    mockLogout();
+    logout();
     location.href = "/login";
   };
 
-  const user = getCurrentUser();
+  const user = getCurrentUserId();
 
   return (
     <div className="flex h-full w-full bg-[#0f1419] text-white overflow-hidden">
-      <ChatSidebar onLogout={handleLogout} userEmail={user?.email} />
+      <ChatSidebar onLogout={handleLogout} />
       
       {/* Main Chat Area */}
       <div className={`flex flex-col flex-1 h-full overflow-hidden transition-all duration-300 ${

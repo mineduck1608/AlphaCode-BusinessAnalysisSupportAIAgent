@@ -56,3 +56,17 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_session)) -> 
     deleted = await service.delete_user(db, user_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="User not found")
+
+
+@router.post("/login", response_model=schemas.User)
+async def login_or_create_user(
+    email: str,
+    password: str,
+    role_id: int = 1,  # default: user
+    db: AsyncSession = Depends(get_session)
+) -> schemas.User:
+    """
+    Nếu user tồn tại -> trả về user.
+    Nếu chưa -> tạo mới và trả về user mới.
+    """
+    return await service.login_or_create_user(db, email=email, password=password, role_id=role_id)

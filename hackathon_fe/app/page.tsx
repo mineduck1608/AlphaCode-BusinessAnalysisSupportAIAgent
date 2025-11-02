@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import React from "react";
 import Image from "next/image";
 import { BoxIconLine, ArrowUpIcon } from "@/app/icon/index";
+import LayoutWrapper from "@/app/components/common/LayoutWrapper";
 
 export const metadata: Metadata = {
   title: "Welcome - AlphaCode",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 
 export default function WelcomePage() {
   return (
+    <LayoutWrapper>
     <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center">
       {/* Hero Section */}
       <div className="max-w-4xl mx-auto text-center space-y-8 px-4">
@@ -112,5 +114,6 @@ export default function WelcomePage() {
         </div>
       </div>
     </div>
+    </LayoutWrapper>
   );
 }

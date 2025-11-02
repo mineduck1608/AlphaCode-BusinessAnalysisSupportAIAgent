@@ -74,3 +74,32 @@ class UserService:
             return False
         await self.repository.delete_user(db, user)
         return True
+    
+
+    async def login_or_create_user(
+        self,
+        db: AsyncSession,
+        email: str,
+        password: str,
+        role_id: int = 2  # default: normal user
+    ) -> User:
+        # 1. Kiểm tra user tồn tại
+        existing_user = await self.repository.get_user_by_email(db, email)
+
+        if existing_user:
+            # Có thể kiểm tra password nếu bạn lưu hash (bỏ qua nếu không cần)
+            # if not verify_password(password, existing_user.password):
+            #     raise HTTPException(status_code=400, detail="Sai mật khẩu")
+
+            return existing_user
+
+        # 2. Nếu chưa có -> tạo mới
+        new_user = User(
+            email=email,
+            password=password,  # nên hash ở đây nếu dùng auth thật
+            role_id=role_id,
+            created_at=datetime.utcnow(),
+            status=1,
+            last_updated=None
+        )
+        return await self.repository.create_user(db, new_user)

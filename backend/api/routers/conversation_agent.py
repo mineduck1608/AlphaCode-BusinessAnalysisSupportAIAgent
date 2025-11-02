@@ -10,7 +10,7 @@ service = ConversationAgentService()
 
 router = APIRouter(
     prefix="/conversation-agents",
-    tags=["conversation_agent"],
+    tags=["conversation-agent"],
 )
 
 @router.post("/{conversation_id}/agents", response_model=schemas.ConversationAgent)

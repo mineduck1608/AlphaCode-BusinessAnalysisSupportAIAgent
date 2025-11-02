@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL từ environment variables hoặc default
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Tạo axios instance với cấu hình mặc định
 const axiosInstance = axios.create({
