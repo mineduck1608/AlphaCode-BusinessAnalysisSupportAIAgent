@@ -2,44 +2,32 @@ import axiosInstance from '@/app/lib/axios';
 import { Agent } from '@/app/types/agent';
 
 export const agentApi = {
-  // Lấy tất cả agents
-  getAll: async (): Promise<Agent[]> => {
-    const response = await axiosInstance.get<Agent[]>('/agents');
-    return response.data;
-  },
-
-  // Lấy agent theo ID
-  getById: async (id: string): Promise<Agent> => {
-    const response = await axiosInstance.get<Agent>(`/agents/${id}`);
-    return response.data;
-  },
-
-  // Tạo agent mới
+  // POST /agents/ - Create Agent
   create: async (data: Partial<Agent>): Promise<Agent> => {
-    const response = await axiosInstance.post<Agent>('/agents', data);
+    const response = await axiosInstance.post<Agent>('/agents/', data);
     return response.data;
   },
 
-  // Cập nhật agent
-  update: async (id: string, data: Partial<Agent>): Promise<Agent> => {
-    const response = await axiosInstance.put<Agent>(`/agents/${id}`, data);
+  // GET /agents/ - List Agents
+  getAll: async (): Promise<Agent[]> => {
+    const response = await axiosInstance.get<Agent[]>('/agents/');
     return response.data;
   },
 
-  // Xóa agent
-  delete: async (id: string): Promise<void> => {
-    await axiosInstance.delete(`/agents/${id}`);
-  },
-
-  // Lấy agents theo provider
-  getByProvider: async (provider: string): Promise<Agent[]> => {
-    const response = await axiosInstance.get<Agent[]>(`/agents/provider/${provider}`);
+  // GET /agents/{agent_id} - Get Agent
+  getById: async (agentId: string): Promise<Agent> => {
+    const response = await axiosInstance.get<Agent>(`/agents/${agentId}`);
     return response.data;
   },
 
-  // Lấy active agents
-  getActive: async (): Promise<Agent[]> => {
-    const response = await axiosInstance.get<Agent[]>('/agents/active');
+  // PUT /agents/{agent_id} - Update Agent
+  update: async (agentId: string, data: Partial<Agent>): Promise<Agent> => {
+    const response = await axiosInstance.put<Agent>(`/agents/${agentId}`, data);
     return response.data;
+  },
+
+  // DELETE /agents/{agent_id} - Delete Agent
+  delete: async (agentId: string): Promise<void> => {
+    await axiosInstance.delete(`/agents/${agentId}`);
   },
 };
