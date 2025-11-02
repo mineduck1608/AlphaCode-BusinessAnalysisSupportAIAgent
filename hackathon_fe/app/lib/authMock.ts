@@ -20,3 +20,8 @@ export function logout() {
   if (typeof window === "undefined") return;
   localStorage.removeItem("user_id");
 }
+
+export function getCurrentUserEmail(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("user_email");
+}
