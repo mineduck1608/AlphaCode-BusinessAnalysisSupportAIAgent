@@ -4,10 +4,14 @@ from typing import List, Optional
 
 from api.services.conversation import ConversationService
 from api.core.db import get_session
-from api.core.models import Conversation, ConversationAgent
+from api.core.schemas import Conversation, ConversationAgent
 
-router = APIRouter(prefix="/conversations", tags=["conversations"])
 service = ConversationService()
+
+router = APIRouter(
+    prefix="/conversations",
+    tags=["conversation"],
+)
 
 
 @router.post("/", response_model=Conversation)

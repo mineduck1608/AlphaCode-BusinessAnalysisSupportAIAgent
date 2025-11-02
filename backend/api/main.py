@@ -10,14 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uuid
 import logging
-from routers.agent import router as agent_router
+
 from api.routers import conversation
 from api.routers import conversation_agent
-from routers.message import router as message_router
-from routers.prompt import router as prompt_router
-from routers.role import router as role_router
-from routers.shared_conversation import router as shared_conversation_router
-from routers.user import router as user_router
+from api.routers import agent
+from api.routers import user
+from api.routers import role
+from api.routers import prompt
+from api.routers import message
+from api.routers import shared_conversation
 from api.websocket.agents.chat_agent import ChatAgent
 from api.websocket.utils.session import SessionManager
 from api.websocket.utils.message import Message
@@ -43,14 +44,14 @@ app.add_middleware(
 session_manager = SessionManager()
 
 # register routers
-app.include_router(agent_router, prefix='/agent', tags=['agent'])
-app.include_router(conversation.router, prefix="/conversation", tags=["conversation"])
-app.include_router(conversation_agent.router, prefix="/conversation-agent", tags=["conversation-agent"])
-app.include_router(message_router, prefix='/message', tags=['message'])
-app.include_router(prompt_router, prefix='/prompt', tags=['prompt'])
-app.include_router(role_router, prefix='/role', tags=['role'])
-app.include_router(shared_conversation_router, prefix='/shared_conversation', tags=['shared_conversation'])
-app.include_router(user_router, prefix='/user', tags=['user'])
+app.include_router(conversation.router, tags=["conversation"])
+app.include_router(conversation_agent.router, tags=["conversation-agent"])
+app.include_router(agent.router, tags=["agent"])
+app.include_router(user.router, tags=["user"])
+app.include_router(role.router, tags=["role"])
+app.include_router(prompt.router, tags=["prompt"])
+app.include_router(message.router, tags=["message"])
+app.include_router(shared_conversation.router, tags=["shared-conversation"])
 
 @app.get("/health")
 def healthcheck():

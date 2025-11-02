@@ -4,42 +4,47 @@ from typing import List, Optional
 
 from api.services.prompt import PromptService
 from api.core.db import get_session
-from api.core.models import Prompt # Giả sử Prompt là một model/schema cho response
+from api.core import schemas
 
 
-router = APIRouter(prefix="/prompts", tags=["prompts"])
 service = PromptService()
 
-@router.post("/", response_model=Prompt)
+router = APIRouter(
+    prefix="/prompts",
+    tags=["prompt"],
+)
+
+
+@router.post("/", response_model=schemas.Prompt)
 async def create_prompt(
     name: str, 
     content: str, 
     db: AsyncSession = Depends(get_session)
-) -> Prompt:
+) -> schemas.Prompt:
     return await service.create_prompt(db, name=name, content=content)
 
-@router.get("/", response_model=List[Prompt])
+@router.get("/", response_model=List[schemas.Prompt])
 async def list_prompts(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_session)
-) -> List[Prompt]:
+) -> List[schemas.Prompt]:
     return await service.list_prompts(db, skip=skip, limit=limit)
 
-@router.get("/{prompt_id}", response_model=Prompt)
-async def get_prompt(prompt_id: int, db: AsyncSession = Depends(get_session)) -> Prompt:
+@router.get("/{prompt_id}", response_model=schemas.Prompt)
+async def get_prompt(prompt_id: int, db: AsyncSession = Depends(get_session)) -> schemas.Prompt:
     prompt = await service.get_prompt(db, prompt_id)
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     return prompt
 
-@router.put("/{prompt_id}", response_model=Prompt)
+@router.put("/{prompt_id}", response_model=schemas.Prompt)
 async def update_prompt(
     prompt_id: int, 
     name: Optional[str] = None, 
     content: Optional[str] = None, 
     db: AsyncSession = Depends(get_session)
-) -> Prompt:
+) -> schemas.Prompt:
     prompt = await service.update_prompt(db, prompt_id, name=name, content=content)
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")

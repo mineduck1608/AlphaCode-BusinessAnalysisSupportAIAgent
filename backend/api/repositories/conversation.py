@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from api.core.models import Conversation, ConversationAgent
+from api.core.models import Conversation, ConversationAgent  # phải là SQLAlchemy Base model
 
 
 class ConversationRepository:
@@ -13,15 +13,13 @@ class ConversationRepository:
         return convo
 
     async def get_conversation(self, db: AsyncSession, conversation_id: int) -> Optional[Conversation]:
-        result = await db.execute(
-            select(Conversation).where(Conversation.id == conversation_id)
-        )
+        stmt = select(Conversation).where(Conversation.id == conversation_id)
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def list_conversations(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> List[Conversation]:
-        result = await db.execute(
-            select(Conversation).offset(skip).limit(limit)
-        )
+        stmt = select(Conversation).offset(skip).limit(limit)
+        result = await db.execute(stmt)
         return result.scalars().all()
 
     async def update_conversation(self, db: AsyncSession, convo: Conversation) -> Conversation:
@@ -41,19 +39,15 @@ class ConversationRepository:
         return ca
 
     async def get_conversation_agent(self, db: AsyncSession, ca_id: int) -> Optional[ConversationAgent]:
-        result = await db.execute(
-            select(ConversationAgent).where(ConversationAgent.id == ca_id)
-        )
+        stmt = select(ConversationAgent).where(ConversationAgent.id == ca_id)
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def list_conversation_agents_by_conversation(
         self, db: AsyncSession, conversation_id: int
     ) -> List[ConversationAgent]:
-        result = await db.execute(
-            select(ConversationAgent).where(
-                ConversationAgent.conversation_id == conversation_id
-            )
-        )
+        stmt = select(ConversationAgent).where(ConversationAgent.conversation_id == conversation_id)
+        result = await db.execute(stmt)
         return result.scalars().all()
 
     async def update_conversation_agent(self, db: AsyncSession, ca: ConversationAgent) -> ConversationAgent:

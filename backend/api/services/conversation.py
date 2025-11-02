@@ -24,7 +24,7 @@ class ConversationService:
             created_at=datetime.utcnow(),
             status=1,
             is_shared=is_shared,
-            share_token="",  # TODO: Generate token
+            session="",  # TODO: Generate session
             last_updated=None,
             summary=summary,
             summary_embedding=None  # TODO: Generate embedding
