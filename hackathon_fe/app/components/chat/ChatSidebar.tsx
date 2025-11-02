@@ -11,7 +11,7 @@ import { Conversation } from "@/app/types/conversation";
 import { useRouter } from "next/navigation";
 import { getCurrentUserId } from "@/app/lib/authMock";
 
-export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => void; userEmail?: string | undefined }) {
+export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => void; userEmail?: string | null }) {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<ShareableConversation | null>(null);
   const [activeTab, setActiveTab] = useState<"recent" | "shared">("recent");
