@@ -1,31 +1,68 @@
 "use client";
 
 import React from "react";
-import { Plus, MessageSquare, Settings, LogOut } from "lucide-react";
+import { Plus, MessageSquare, Settings, LogOut, User } from "lucide-react";
 
 export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => void; userEmail?: string | undefined }) {
   return (
-    <div className="w-72 bg-[#202123] flex flex-col p-4 border-r border-gray-800">
-      <div className="mb-4">
-        <button className="w-full flex items-center gap-2 text-sm text-neutral-100 bg-[#343541] px-3 py-2 rounded-md hover:bg-[#3e3f4b]">
-          <Plus size={16} /> New chat
+    <div className="w-72 bg-[#0f1419] flex flex-col border-r border-blue-900/20">
+      {/* Header với gradient */}
+      <div className="p-4 border-b border-blue-900/20 bg-gradient-to-r from-blue-600/10 to-purple-600/10">
+        <button className="w-full flex items-center justify-center gap-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 rounded-lg hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/20">
+          <Plus size={18} /> New Chat
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-2 text-sm">
-        <div className="px-3 py-2 rounded-md hover:bg-[#2a2b32] cursor-pointer">Project ideas</div>
-        <div className="px-3 py-2 rounded-md hover:bg-[#2a2b32] cursor-pointer">Study notes</div>
-        <div className="px-3 py-2 rounded-md hover:bg-[#2a2b32] cursor-pointer">Recipes</div>
+      {/* Recent Chats */}
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="text-xs font-semibold text-blue-400 mb-3 px-2 uppercase tracking-wider">Recent Chats</div>
+        <div className="space-y-1">
+          <div className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20">
+            <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
+              <MessageSquare size={14} className="text-blue-400" />
+              <span className="truncate">Project ideas</span>
+            </div>
+          </div>
+          <div className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20">
+            <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
+              <MessageSquare size={14} className="text-blue-400" />
+              <span className="truncate">Study notes</span>
+            </div>
+          </div>
+          <div className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20">
+            <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
+              <MessageSquare size={14} className="text-blue-400" />
+              <span className="truncate">Recipes</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-4 border-t border-gray-800 pt-3">
-        <div className="text-xs text-neutral-400 mb-2 px-1">{userEmail ?? "guest"}</div>
+      {/* User Info Footer */}
+      <div className="p-4 border-t border-blue-900/20 bg-[#0a0e13]">
+        <div className="flex items-center gap-3 mb-3 px-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <User size={16} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-white truncate">{userEmail ?? "guest"}</div>
+            <div className="text-xs text-gray-500">Free Plan</div>
+          </div>
+        </div>
         <div className="flex gap-2">
-          <button className="flex-1 flex items-center gap-2 text-sm text-neutral-300 hover:text-white px-2 py-2 rounded-md" onClick={() => alert("Settings (mock)")}>
-            <Settings size={14} /> Settings
+          <button 
+            className="flex-1 flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-white hover:bg-blue-900/20 px-3 py-2 rounded-lg transition-all border border-blue-900/20 hover:border-blue-500/30" 
+            onClick={() => alert("Settings (mock)")}
+          >
+            <Settings size={14} />
+            <span>Settings</span>
           </button>
-          <button className="flex items-center gap-2 text-sm text-rose-300 hover:text-white px-2 py-2 rounded-md" onClick={onLogout}>
-            <LogOut size={14} /> Logout
+          <button 
+            className="flex items-center justify-center gap-2 text-xs text-red-400 hover:text-white hover:bg-red-900/20 px-3 py-2 rounded-lg transition-all border border-red-900/20 hover:border-red-500/30" 
+            onClick={onLogout}
+          >
+            <LogOut size={14} />
+            <span>Logout</span>
           </button>
         </div>
       </div>

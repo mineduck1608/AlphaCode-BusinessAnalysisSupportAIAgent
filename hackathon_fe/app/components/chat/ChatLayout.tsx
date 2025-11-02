@@ -1,4 +1,3 @@
-// components/chat/ChatLayout.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -123,12 +122,16 @@ export default function ChatLayout() {
   const user = getCurrentUser();
 
   return (
-    <div className="flex h-screen bg-neutral-900 text-neutral-100">
+    <div className="flex h-full w-full bg-[#0f1419] text-white overflow-hidden">
       <ChatSidebar onLogout={handleLogout} userEmail={user?.email} />
-      <div className="flex flex-col flex-1">
-        <ChatHeader />
-        <ChatMessageList messages={messages} isLoading={isLoading} bottomRef={bottomRef} />
-        <ChatInput onSend={handleSend} />
+      <div className="flex flex-col flex-1 h-full overflow-hidden">
+        <ChatHeader connected={websocket.connected} connecting={websocket.connecting} />
+        <div className="flex-1 overflow-y-auto">
+          <ChatMessageList messages={messages} isLoading={isLoading} bottomRef={bottomRef} />
+        </div>
+        <div className="shrink-0">
+          <ChatInput onSend={handleSend} disabled={!websocket.connected} />
+        </div>
       </div>
     </div>
   );

@@ -13,5 +13,10 @@ export default function ChatPage() {
     if (!u) router.replace("/login");
   }, [router]);
 
-  return <ChatLayout />;
+  // Return ChatLayout in a full-screen container, bypassing the default layout wrapper
+  return (
+    <div className="fixed inset-0 z-50">
+      <ChatLayout />
+    </div>
+  );
 }
