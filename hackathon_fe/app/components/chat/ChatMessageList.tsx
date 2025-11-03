@@ -10,21 +10,59 @@ export default function ChatMessageList({
   isLoading,
   isAgentTyping,
   bottomRef,
+  loadingMore,
+  hasMore,
+  onLoadMore,
 }: {
   messages: Message[];
   isLoading: boolean;
   isAgentTyping?: boolean;
   bottomRef: React.RefObject<HTMLDivElement | null>;
+  loadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     console.log('💬 ChatMessageList render:', { isLoading, isAgentTyping, messageCount: messages.length });
     containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isAgentTyping]);
 
+  // Intersection Observer for loading more messages when scrolling to top
+  useEffect(() => {
+    if (!onLoadMore || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (topSentinelRef.current) {
+      observer.observe(topSentinelRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, loadingMore]);
+
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-background">
+      {/* Top sentinel for infinite scroll */}
+      {hasMore && (
+        <div ref={topSentinelRef} className="h-4 flex items-center justify-center">
+          {loadingMore && (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              Loading earlier messages...
+            </div>
+          )}
+        </div>
+      )}
       {messages.map((msg) => (
         <div key={msg.id} className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
           {/* Avatar */}

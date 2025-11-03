@@ -43,9 +43,11 @@ export const messageApi = {
     await axiosInstance.delete(`/messages/${messageId}`);
   },
 
-  // GET /messages/conversation/{conversation_id} - Get Conversation Messages
-  getByConversationId: async (conversationId: string): Promise<Message[]> => {
-    const response = await axiosInstance.get<Message[]>(`/messages/conversation/${conversationId}`);
+  // GET /messages/conversation/{conversation_id} - Get Conversation Messages (with pagination)
+  getByConversationId: async (conversationId: string, skip: number = 0, limit: number = 50): Promise<Message[]> => {
+    const response = await axiosInstance.get<Message[]>(`/messages/conversation/${conversationId}`, {
+      params: { skip, limit }
+    });
     return response.data;
   },
 

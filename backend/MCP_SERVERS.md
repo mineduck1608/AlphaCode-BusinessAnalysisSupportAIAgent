@@ -1,7 +1,7 @@
 # MCP Servers Documentation
 
 ## Overview
-Hệ thống sử dụng MCP (Model Context Protocol) để tách biệt các logic xử lý thành các microservices độc lập, giao tiếp qua STDIO.
+The system uses MCP (Model Context Protocol) to separate processing logic into independent microservices that communicate via STDIO.
 
 ## Architecture
 
@@ -25,9 +25,9 @@ User Input → ChatAgent (Gemini Orchestrator) → MCP Servers
 **Path**: `services/mcp_collector/src/server.py`
 
 **Capabilities**:
-- `ingest_raw`: Thu thập raw requirements
-- `normalize`: Chuẩn hóa text
-- `extract_stories`: Extract user stories từ chunks
+- `ingest_raw`: Collect raw requirements
+- `normalize`: Standardize text
+- `extract_stories`: Extract user stories from chunks
 
 **Prompt**: `prompts/collector.yml`
 
@@ -44,9 +44,9 @@ result = mcp_adapter.call_mcp(
 **Path**: `services/mcp_analyzer/src/server.py`
 
 **Capabilities**:
-- `analyze_requirement`: Phân tích text chunks
-- `analyze_stories`: Phân tích stories, tìm issues/conflicts
-- `suggest_improvements`: Đề xuất cải thiện
+- `analyze_requirement`: Analyze text chunks
+- `analyze_stories`: Analyze stories, find issues/conflicts
+- `suggest_improvements`: Suggest improvements
 
 **Prompt**: `prompts/analyzer.yml`
 
@@ -72,8 +72,8 @@ result = mcp_adapter.call_mcp(
 **Path**: `services/mcp_requirement/src/server.py`
 
 **Capabilities**:
-- `identify_requirements`: Xác định core business requirements
-- `prioritize`: Ưu tiên requirements theo score
+- `identify_requirements`: Identify core business requirements
+- `prioritize`: Prioritize requirements by score
 
 **Prompt**: `prompts/requirement.yml`
 
@@ -96,7 +96,7 @@ result = mcp_adapter.call_mcp(
 **Path**: `services/mcp_reporter/src/server.py`
 
 **Capabilities**:
-- `generate_report`: Tạo report và context diagram (Mermaid)
+- `generate_report`: Create report and context diagram (Mermaid)
 
 **Prompt**: `prompts/reporter.yml`
 
@@ -189,33 +189,33 @@ result = mcp_adapter.call_mcp(
 
 ### Function Calling Sequence
 
-1. **User Input** → Gemini nhận diện intent
+1. **User Input** → Gemini identifies intent
 2. **Function Call**: `ingest_raw_requirements`
-   - Collector thu thập và extract stories
+   - Collector collects and extracts stories
    - Return: stories[]
 3. **Auto Chain**: `analyze_stories`
-   - Analyzer phân tích stories
-   - Return: enriched stories với analysis
+   - Analyzer analyzes stories
+   - Return: enriched stories with analysis
 4. **Auto Chain**: `identify_requirements`
-   - Requirement extract core requirements
+   - Requirement extracts core requirements
    - Return: requirements[]
 5. **Auto Chain**: `prioritize_requirements`
    - Requirement prioritize
    - Return: ranked requirements[]
 6. **Auto Chain**: `validate_requirements`
-   - Validator kiểm tra completeness
+   - Validator checks completeness
    - Return: validation issues[]
 7. **Auto Chain**: `generate_context_diagram`
-   - Reporter tạo Mermaid diagram
+   - Reporter creates Mermaid diagram
    - Return: diagram + report
 8. **Final Call**: `store_conversation_context`
-   - Vector store lưu context
+   - Vector store saves context
    - Return: context_id
 
 **Alternative Flows**:
 - **Search Previous**: `search_previous_context`
-   - Khi user hỏi về requirements cũ
-   - Vector search trả về previous analysis
+   - When user asks about old requirements
+   - Vector search returns previous analysis
 
 ### Gemini System Instruction
 
@@ -224,13 +224,13 @@ system_instruction = f"""
 📊 Context: {len(self.collected_requirements)} requirements saved
 
 🎯 Workflow:
-1. ingest_raw_requirements → Chuẩn hóa
-2. analyze_stories → Tìm issues
+1. ingest_raw_requirements → Standardize
+2. analyze_stories → Find issues
 3. identify_requirements → Extract core reqs
 4. prioritize_requirements → Ranking
 5. generate_context_diagram → Visualization
 
-💡 Style: Thân thiện, chủ động, intelligent routing
+💡 Style: Friendly, proactive, intelligent routing
 """
 ```
 
@@ -321,19 +321,19 @@ Format: Jinja2 templates with YAML metadata
 
 ### ✅ Fully Integrated (7/8 MCP Servers)
 
-1. **mcp_collector** - Thu thập và chuẩn hóa requirements ✅
-2. **mcp_analyzer** - Phân tích chất lượng, tìm issues ✅
-3. **mcp_requirement** - Xác định và prioritize requirements ✅
-4. **mcp_reporter** - Tạo context diagram (Mermaid) ✅
-5. **mcp_validator** - Validate completeness và structure ✅
-6. **mcp_vector** - Store/search conversation context với embeddings ✅
+1. **mcp_collector** - Collect and standardize requirements ✅
+2. **mcp_analyzer** - Analyze quality, find issues ✅
+3. **mcp_requirement** - Identify and prioritize requirements ✅
+4. **mcp_reporter** - Create context diagram (Mermaid) ✅
+5. **mcp_validator** - Validate completeness and structure ✅
+6. **mcp_vector** - Store/search conversation context with embeddings ✅
 7. **common** - Shared utilities ✅
 
 ### ⏳ Not Yet Implemented
 
-8. **mcp_ticket** - Empty file, cần implement Jira/GitHub integration
+8. **mcp_ticket** - Empty file, need to implement Jira/GitHub integration
 
-## Complete Workflow với Vector Store
+## Complete Workflow with Vector Store
 
 ```
 User: "As a user, I want to login with email"
@@ -369,11 +369,11 @@ Vector search returns previous analysis
 ## Key Benefits
 
 ✅ **Complete Pipeline**: 7-step automated analysis
-✅ **Context Memory**: Vector store cho cross-session recall
-✅ **Quality Assurance**: Validation step đảm bảo completeness
-✅ **Intelligent Routing**: Gemini orchestrator quyết định flow
-✅ **Natural Conversation**: User không cần biết MCP internals
-✅ **Scalable**: Each MCP server độc lập, có thể scale riêng
+✅ **Context Memory**: Vector store for cross-session recall
+✅ **Quality Assurance**: Validation step ensures completeness
+✅ **Intelligent Routing**: Gemini orchestrator decides flow
+✅ **Natural Conversation**: User doesn't need to know MCP internals
+✅ **Scalable**: Each MCP server is independent, can scale separately
 
 ## Next Steps
 

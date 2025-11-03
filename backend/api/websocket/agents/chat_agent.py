@@ -73,8 +73,18 @@ class ChatAgent(BaseAgent):
         self.conversation_id: Optional[int] = None
         self.conversation_service = ConversationService()
         
-        # State - NO memory cache, all from DB
+        # State - NO memory cache for messages, all from DB
         self.is_first_message = True  # Track first user message for auto-naming
+        
+        # Temporary cache for current tool execution (within single request)
+        self.last_pipeline_result = {
+            "stories": [],
+            "analysis": {},
+            "requirements": [],
+            "validation_issues": [],
+            "diagram": "",
+            "report": {}
+        }
 
     async def initialize_conversation(self, conversation_name: Optional[str] = None):
         """Initialize conversation in database and load existing context."""
@@ -201,7 +211,7 @@ Tên cuộc hội thoại:"""
     
     async def _load_conversation_context(self, db):
         """Load existing conversation summary from DB (called on reconnect)."""
-        conversation = await self.conversation_service.get_conversation_by_id(db, self.conversation_id)
+        conversation = await self.conversation_service.get_conversation(db, self.conversation_id)
         if conversation and conversation.summary:
             # Summary exists, will be used in context when generating responses
             return conversation.summary
@@ -210,7 +220,7 @@ Tên cuộc hội thoại:"""
     async def _load_conversation_summary(self) -> Optional[str]:
         """Load conversation summary for context."""
         async with async_session() as db:
-            conversation = await self.conversation_service.get_conversation_by_id(db, self.conversation_id)
+            conversation = await self.conversation_service.get_conversation(db, self.conversation_id)
             if conversation and conversation.summary:
                 return conversation.summary
             return None
@@ -282,7 +292,7 @@ Total Messages: {count}
     async def _save_conversation_summary(self, summary: str, embedding: Optional[List[float]] = None):
         """Save conversation summary and embedding to DB."""
         async with async_session() as db:
-            conversation = await self.conversation_service.get_conversation_by_id(db, self.conversation_id)
+            conversation = await self.conversation_service.get_conversation(db, self.conversation_id)
             if conversation:
                 conversation.summary = summary
                 if embedding:
@@ -347,7 +357,7 @@ Total Messages: {count}
         return "Xin lỗi, tôi đang gặp vấn đề kết nối với AI. Vui lòng thử lại."
 
     def _is_requirement(self, text: str) -> bool:
-        """Check if text is a requirement."""
+        """Check if text is a requirement (legacy - not used with Gemini orchestrator)."""
         text_lower = text.lower()
         patterns = [
             "story:", "as a ", "as an ", "given ", "when ", "then ",
@@ -355,17 +365,15 @@ Total Messages: {count}
             "the system must", "the user can", "the user should"
         ]
         
-        if self.pipeline_state == "collecting":
-            return True
-        
         return any(p in text_lower for p in patterns)
 
     async def _run_pipeline(self) -> str:
-        """Run requirements analysis pipeline using MCP servers."""
+        """Run requirements analysis pipeline using MCP servers (LEGACY - not used)."""
         try:
-            self.pipeline_state = "analyzing"
-            raw_text = "\n\n".join(self.collected_requirements)
-            reqs_count = len(self.collected_requirements)
+            # Load requirements from DB instead of memory
+            recent_messages = await self._load_recent_messages(limit=50)
+            raw_text = "\n\n".join([m['content'] for m in recent_messages if m['role'] == 'user'])
+            reqs_count = len(recent_messages)
             
             # Import MCP adapter
             from api.services import mcp_adapter
@@ -466,7 +474,6 @@ Total Messages: {count}
             report = rep_resp.get("response") or rep_resp
             
             # Extract results
-            self.pipeline_state = "idle"
             stories_count = len(stories)
             reqs_count = len(requirements)
             
@@ -559,7 +566,6 @@ Total Messages: {count}
             
         except Exception as e:
             import traceback
-            self.pipeline_state = "idle"
             error_detail = traceback.format_exc()
             return f"❌ Lỗi pipeline: {str(e)}\n\nChi tiết:\n{error_detail[:500]}"
 
@@ -885,13 +891,7 @@ Total Messages: {count}
                 if hasattr(response, 'text') and response.text:
                     break
             
-            # Auto-collect requirements if detected (and not already processed by tools)
-            if self._is_requirement(message) and message not in self.collected_requirements:
-                self.collected_requirements.append(message)
-                count = len(self.collected_requirements)
-                base_response = response.text if hasattr(response, 'text') else str(response)
-                return f"{base_response}\n\n✅ Đã tự động lưu requirement #{count}."
-            
+            # Return response text
             if hasattr(response, 'text'):
                 return response.text
             return str(response)
@@ -908,9 +908,6 @@ Total Messages: {count}
                 items = args.get("items", [])
                 if not items:
                     return {"error": "No items provided"}
-                
-                # Save to collected requirements
-                self.collected_requirements.extend(items)
                 
                 # Call MCP Collector: ingest_raw
                 result = await asyncio.to_thread(
@@ -1095,17 +1092,9 @@ Total Messages: {count}
                 
                 # Auto-generate summary if not provided
                 if not summary:
-                    analysis = self.last_pipeline_result.get("analysis", {})
-                    validation_issues = self.last_pipeline_result.get("validation_issues", [])
-                    stories = self.last_pipeline_result.get("stories", [])
-                    
                     summary = f"""Requirements Analysis Session
                     
-User provided {len(self.collected_requirements)} requirements
-Extracted {len(stories)} user stories
 Identified {len(requirements)} core requirements
-Analysis found {analysis.get('summary', {}).get('total_issues', 0)} issues
-Validation found {len(validation_issues)} completeness issues
 
 Key Requirements:
 {chr(10).join([f"- {r.get('title', 'Untitled')}" for r in requirements[:5]])}
@@ -1118,12 +1107,6 @@ Requirements Count: {len(requirements)}
 
 Requirements:
 {json.dumps(requirements, indent=2, ensure_ascii=False)}
-
-Analysis:
-{json.dumps(self.last_pipeline_result.get("analysis", {}), indent=2, ensure_ascii=False)}
-
-Validation Issues:
-{json.dumps(self.last_pipeline_result.get("validation_issues", []), indent=2, ensure_ascii=False)}
 
 Context Diagram:
 {diagram}
@@ -1260,9 +1243,8 @@ Context Diagram:
                 return {"success": True, "message": self._get_help()}
             
             elif tool_name == "clear_requirements":
-                self.collected_requirements.clear()
-                self.pipeline_state = "idle"
-                return {"success": True, "message": "✅ Đã xóa tất cả requirements"}
+                # Legacy function - no longer used (requirements in DB now)
+                return {"success": True, "message": "✅ Đã xóa tất cả requirements (legacy function)"}
             
             return {"error": f"Unknown tool: {tool_name}"}
             

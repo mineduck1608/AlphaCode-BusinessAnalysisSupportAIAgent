@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import ChatSidebar from "./ChatSidebar";
 import ChatHeader from "./ChatHeader";
 import ChatMessageList from "./ChatMessageList";
@@ -28,6 +28,9 @@ export default function ChatLayout() {
   
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(conversationIdFromUrl);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messagePage, setMessagePage] = useState(0);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
@@ -35,7 +38,10 @@ export default function ChatLayout() {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const messageContainerRef = useRef<HTMLDivElement | null>(null);
   const userEmail = getCurrentUserEmail();
+
+  const MESSAGES_PER_PAGE = 50;
 
   // WebSocket connection
   const websocket = useWebSocket({
@@ -168,15 +174,22 @@ export default function ChatLayout() {
       
       try {
         setIsLoading(true);
-        // Clear messages cũ trước khi load
+        setLoadingMessages(true);
+        // Clear messages and reset pagination
         setMessages([]);
+        setMessagePage(0);
+        setHasMoreMessages(true);
         
-        const apiMessages = await messageApi.getByConversationId(currentConversationId);
+        const apiMessages = await messageApi.getByConversationId(currentConversationId, 0, MESSAGES_PER_PAGE);
         
-        // Convert API messages to UI messages
-        const uiMessages: Message[] = apiMessages.map((msg: APIMessage) => ({
+        if (apiMessages.length < MESSAGES_PER_PAGE) {
+          setHasMoreMessages(false);
+        }
+        
+        // Convert API messages to UI messages (reverse to show oldest first)
+        const uiMessages: Message[] = apiMessages.reverse().map((msg: APIMessage) => ({
           id: msg.id.toString(),
-          role: msg.user_id ? 'user' : 'assistant', // Nếu có user_id thì là user message
+          role: msg.user_id ? 'user' : 'assistant',
           content: msg.content,
           time: new Date(msg.created_at).toLocaleTimeString(),
         }));
@@ -185,7 +198,7 @@ export default function ChatLayout() {
       } catch (error) {
         console.error('Failed to load messages:', error);
         
-        // Nếu conversation chưa có messages, hiển thị welcome message
+        // If conversation has no messages, show welcome message
         const errorMessage = error instanceof Error ? error.message : '';
         const errorDetail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
         
@@ -197,6 +210,7 @@ export default function ChatLayout() {
             content: "👋 Start a new conversation! Send your first message below.", 
             time: new Date().toLocaleTimeString() 
           }]);
+          setHasMoreMessages(false);
         } else {
           // Lỗi thật sự thì mới hiển thị error message
           setMessages([{ 
@@ -208,11 +222,45 @@ export default function ChatLayout() {
         }
       } finally {
         setIsLoading(false);
+        setLoadingMessages(false);
       }
     };
 
     loadMessages();
   }, [currentConversationId]);
+
+  // Load more messages when scrolling to top
+  const loadMoreMessages = useCallback(async () => {
+    if (!currentConversationId || loadingMessages || !hasMoreMessages) return;
+
+    setLoadingMessages(true);
+    try {
+      const nextPage = messagePage + 1;
+      const skip = nextPage * MESSAGES_PER_PAGE;
+      const apiMessages = await messageApi.getByConversationId(currentConversationId, skip, MESSAGES_PER_PAGE);
+      
+      if (apiMessages.length < MESSAGES_PER_PAGE) {
+        setHasMoreMessages(false);
+      }
+      
+      if (apiMessages.length > 0) {
+        const uiMessages: Message[] = apiMessages.reverse().map((msg: APIMessage) => ({
+          id: msg.id.toString(),
+          role: msg.user_id ? 'user' : 'assistant',
+          content: msg.content,
+          time: new Date(msg.created_at).toLocaleTimeString(),
+        }));
+        
+        // Prepend older messages to the beginning
+        setMessages(prev => [...uiMessages, ...prev]);
+        setMessagePage(nextPage);
+      }
+    } catch (error) {
+      console.error('Failed to load more messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [currentConversationId, loadingMessages, hasMoreMessages, messagePage, MESSAGES_PER_PAGE]);
 
   // Auto scroll khi có messages mới
   useEffect(() => {
@@ -423,6 +471,9 @@ export default function ChatLayout() {
               isLoading={isLoading}
               isAgentTyping={isAgentTyping}
               bottomRef={bottomRef}
+              loadingMore={loadingMessages}
+              hasMore={hasMoreMessages}
+              onLoadMore={loadMoreMessages}
             />
           )}
         </div>

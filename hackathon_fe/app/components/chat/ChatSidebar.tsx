@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Plus, MessageSquare, Settings, LogOut, User, Share2, Clock, Globe } from "lucide-react";
 import ShareDialog from "./ShareDialog";
@@ -20,9 +20,28 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const observer = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
 
-  // Fetch conversations when component mounts
+  const ITEMS_PER_PAGE = 20;
+
+  // Ref for the last conversation element
+  const lastConversationRef = useCallback((node: HTMLDivElement | null) => {
+    if (loadingConversations) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loadingConversations, hasMore]);
+
+  // Fetch conversations when component mounts or page changes
   useEffect(() => {
     const fetchConversations = async () => {
       const userId = localStorage.getItem("user_id");
@@ -33,18 +52,27 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
 
       setLoadingConversations(true);
       try {
-        const data = await conversationApi.getByUserId(userId);
-        setConversations(Array.isArray(data) ? data : []);
+        const skip = page * ITEMS_PER_PAGE;
+        const data = await conversationApi.getByUserId(userId, skip, ITEMS_PER_PAGE);
+        
+        if (data.length < ITEMS_PER_PAGE) {
+          setHasMore(false);
+        }
+        
+        setConversations(prev => {
+          // Avoid duplicates
+          const newConvs = data.filter(conv => !prev.some(p => p.id === conv.id));
+          return [...prev, ...newConvs];
+        });
       } catch (error) {
         console.error('Failed to fetch conversations:', error);
-        setConversations([]);
       } finally {
         setLoadingConversations(false);
       }
     };
 
     fetchConversations();
-  }, []);
+  }, [page]);
 
   const handleShareClick = async () => {
     // Get first conversation for demo (trong thực tế sẽ get conversation hiện tại)
@@ -60,37 +88,20 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
   };
 
   const handleNewChat = async () => {
-    const fetchConversations = async () => {
-      const userId = localStorage.getItem("user_id");
-      if (!userId) {
-        setConversations([]);
-        return;
-      }
-
-      setLoadingConversations(true);
-      try {
-        const data = await conversationApi.getByUserId(userId);
-        setConversations(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Failed to fetch conversations:', error);
-        setConversations([]);
-      } finally {
-        setLoadingConversations(false);
-      }
-    };
-
-    
     try{
       const newConv = await conversationApi.create({
         name: "New Conversation",
         user_id: getCurrentUserId() || -1,
         is_shared: false
       });
-      fetchConversations();
+      
+      // Add new conversation to the beginning of the list
+      setConversations(prev => [newConv, ...prev]);
       router.push('/chat?id=' + newConv.id);
     }
-    catch{
-
+    catch (error) {
+      console.error('Failed to create new conversation:', error);
+      toast.error('Failed to create new conversation');
     }
   }
 
@@ -190,25 +201,24 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
           <div className="p-3">
             <div className="text-xs font-semibold text-blue-400 mb-3 px-2 uppercase tracking-wider">Recent Chats</div>
             <div className="space-y-1">
-              {loadingConversations ? (
-                <div className="px-3 py-2 text-xs text-gray-400">Loading conversations...</div>
-              ) : conversations.length > 0 ? (
-                conversations.map((conversation) => (
+              {conversations.length > 0 ? (
+                conversations.map((conversation, index) => (
                   <div 
                     key={conversation.id}
+                    ref={index === conversations.length - 1 ? lastConversationRef : null}
                     onClick={() => handleConversationClick(conversation.id)}
                     className="group px-3 py-2.5 rounded-lg hover:bg-blue-900/20 cursor-pointer transition-all border border-transparent hover:border-blue-500/20 relative"
                     title={conversation.name || conversation.summary || `Conversation ${conversation.id.slice(0, 8)}`}
                   >
                     <div className="flex items-center gap-2 text-sm text-gray-300 group-hover:text-white">
-                      <MessageSquare size={14} className="text-blue-400 flex-shrink-0" />
+                      <MessageSquare size={14} className="text-blue-400 shrink-0" />
                       <span className="truncate flex-1">
                         {conversation.name || conversation.summary || `Chat ${conversation.id.slice(0, 8)}`}
                       </span>
                       {/* Delete button - only show on hover */}
                       <button
                         onClick={(e) => handleDeleteConversation(conversation.id, e)}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-900/30 rounded transition-all flex-shrink-0"
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-900/30 rounded transition-all shrink-0"
                         title="Delete conversation"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
@@ -225,6 +235,12 @@ export default function ChatSidebar({ onLogout, userEmail }: { onLogout?: () => 
                 ))
               ) : (
                 <div className="px-3 py-2 text-xs text-gray-400">No conversations yet</div>
+              )}
+              {loadingConversations && (
+                <div className="px-3 py-2 text-xs text-gray-400 flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  Loading more...
+                </div>
               )}
             </div>
           </div>

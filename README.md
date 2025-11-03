@@ -18,18 +18,18 @@
 
 ---
 
-## 📋 Mô Tả Dự Án
+## 📋 Project Description
 
-**AlphaCode** là một hệ thống trợ lý AI thông minh chuyên biệt cho lĩnh vực **Requirements Engineering** (Kỹ thuật Yêu cầu). Dự án được phát triển với mục tiêu hỗ trợ các nhóm phát triển phần mềm trong việc:
+**AlphaCode** is an intelligent AI assistant system specialized for **Requirements Engineering**. The project is developed with the goal of supporting software development teams in:
 
-- 📝 **Thu thập và phân tích yêu cầu**: Tự động phân tích và chuẩn hóa các yêu cầu từ người dùng
-- 🤖 **Tương tác thời gian thực**: Giao tiếp với AI Agent qua WebSocket với typing indicator
-- 📊 **Sinh Context Diagram**: Tự động tạo sơ đồ ngữ cảnh từ các yêu cầu đã phân tích
-- 💬 **Chat History Management**: Lưu trữ và quản lý lịch sử hội thoại
-- 🔗 **Share Conversations**: Chia sẻ các cuộc trò chuyện qua link công khai
-- 🎨 **Modern UI/UX**: Giao diện tối hiện đại với theme xanh dương chuyên nghiệp
+- 📝 **Requirements Collection and Analysis**: Automatically analyze and standardize requirements from users
+- 🤖 **Real-time Interaction**: Communicate with AI Agent via WebSocket with typing indicator
+- 📊 **Context Diagram Generation**: Automatically create context diagrams from analyzed requirements
+- 💬 **Chat History Management**: Store and manage conversation history
+- 🔗 **Share Conversations**: Share conversations through public links
+- 🎨 **Modern UI/UX**: Modern dark interface with professional blue theme
 
-### 🎯 Use Case Chính
+### 🎯 Main Use Case
 
 ```
 User → Input Requirements → AI Analysis → Generate Context Diagram
@@ -45,22 +45,22 @@ User → Input Requirements → AI Analysis → Generate Context Diagram
 
 ### 🎨 Frontend Features
 
-- ✅ **Real-time Chat Interface** với WebSocket
-- ✅ **Typing Indicator** - Hiển thị khi AI đang trả lời
-- ✅ **Message History** - Lưu trữ local và database
-- ✅ **Share Conversation** - Tạo link chia sẻ công khai
+- ✅ **Real-time Chat Interface** with WebSocket
+- ✅ **Typing Indicator** - Display when AI is responding
+- ✅ **Message History** - Local and database storage
+- ✅ **Share Conversation** - Create public share links
 - ✅ **Dual Tabs Sidebar** - Recent & Shared conversations
-- ✅ **Preview Panel** - Xem kết quả phân tích
-- ✅ **Dark Blue Theme** - Giao diện chuyên nghiệp
-- ✅ **Responsive Design** - Tương thích mọi thiết bị
+- ✅ **Preview Panel** - View analysis results
+- ✅ **Dark Blue Theme** - Professional interface
+- ✅ **Responsive Design** - Compatible with all devices
 - ✅ **Authentication** - Login/Logout system
 
 ### 🔧 Backend Features
 
 - ✅ **FastAPI WebSocket Server** - Real-time bidirectional communication
-- ✅ **AI Agent System** - Chat agent với Google Gemini
-- ✅ **Session Management** - Quản lý phiên làm việc
-- ✅ **Database Integration** - PostgreSQL với SQLAlchemy ORM
+- ✅ **AI Agent System** - Chat agent with Google Gemini
+- ✅ **Session Management** - Session lifecycle management
+- ✅ **Database Integration** - PostgreSQL with SQLAlchemy ORM
 - ✅ **RESTful API** - Full CRUD operations
 - ✅ **CORS Middleware** - Cross-origin support
 - ✅ **Error Handling** - Comprehensive error management
@@ -169,7 +169,7 @@ User → Input Requirements → AI Analysis → Generate Context Diagram
 
 ### 🤖 Multi-Agent System (MCP Architecture)
 
-AlphaCode sử dụng **Model Context Protocol (MCP)** để orchestrate multiple specialized AI agents:
+AlphaCode uses **Model Context Protocol (MCP)** to orchestrate multiple specialized AI agents:
 
 ```
                    ┌──────────────────────────┐
@@ -207,29 +207,29 @@ AlphaCode sử dụng **Model Context Protocol (MCP)** để orchestrate multipl
 #### **MCP Agents Details**
 
 **1. 📥 Collector Agent** (`mcp_collector`)
-- **Purpose**: Thu thập và chuẩn hóa requirements
+- **Purpose**: Collect and standardize requirements
 - **Functions**:
-  - `ingest_raw`: Nhận raw text input
-  - `normalize`: Chuẩn hóa format
-  - `extract_stories`: Trích xuất user stories
+  - `ingest_raw`: Receive raw text input
+  - `normalize`: Standardize format
+  - `extract_stories`: Extract user stories
 - **Technology**: Python + Gemini API
 - **Prompt**: `prompts/collector.yml`
 
 **2. 🔍 Analyzer Agent** (`mcp_analyzer`)
-- **Purpose**: Phân tích chất lượng requirements
+- **Purpose**: Analyze requirements quality
 - **Functions**:
-  - `analyze_requirement`: Phát hiện vấn đề (ambiguity, conflicts)
-  - `analyze_stories`: Phân tích user stories
-  - `suggest_improvements`: Đề xuất cải thiện
+  - `analyze_requirement`: Detect issues (ambiguity, conflicts)
+  - `analyze_stories`: Analyze user stories
+  - `suggest_improvements`: Suggest improvements
 - **Detection**: Ambiguity, Incompleteness, Non-testable statements
 - **Technology**: Python + Gemini API
 - **Prompt**: `prompts/analyzer.yml`
 
 **3. 📋 Requirement Agent** (`mcp_requirement`)
-- **Purpose**: Xác định và ưu tiên requirements
+- **Purpose**: Identify and prioritize requirements
 - **Functions**:
-  - `identify_requirements`: Xác định core requirements
-  - `prioritize`: Tính priority score
+  - `identify_requirements`: Identify core requirements
+  - `prioritize`: Calculate priority score
 - **Scoring Logic**:
   - Length-based scoring
   - Keyword detection (critical, must, should)
@@ -238,9 +238,9 @@ AlphaCode sử dụng **Model Context Protocol (MCP)** để orchestrate multipl
 - **Prompt**: `prompts/requirement.yml`
 
 **4. 📊 Reporter Agent** (`mcp_reporter`)
-- **Purpose**: Sinh Context Diagram và báo cáo
+- **Purpose**: Generate Context Diagram and reports
 - **Functions**:
-  - `generate_report`: Tạo Mermaid diagram
+  - `generate_report`: Create Mermaid diagram
 - **Output**:
   - Context Diagram (Mermaid syntax)
   - Requirements summary
@@ -249,18 +249,18 @@ AlphaCode sử dụng **Model Context Protocol (MCP)** để orchestrate multipl
 - **Prompt**: `prompts/reporter.yml`
 
 **5. ✅ Validator Agent** (`mcp_validator`)
-- **Purpose**: Validate chất lượng output
+- **Purpose**: Validate output quality
 - **Functions**:
-  - `validate_requirements`: Kiểm tra structure
-  - `validate_report`: Kiểm tra completeness
+  - `validate_requirements`: Check structure
+  - `validate_report`: Check completeness
   - `llm_check`: LLM-based validation
 - **Technology**: Python + Gemini API
 
 **6. 🔎 Vector Search Agent** (`mcp_vector`)
-- **Purpose**: Semantic search và similarity matching
+- **Purpose**: Semantic search and similarity matching
 - **Functions**:
-  - `ingest`: Lưu documents với embeddings
-  - `search`: Tìm kiếm semantic với top_k results
+  - `ingest`: Store documents with embeddings
+  - `search`: Semantic search with top_k results
 - **Technology**: ChromaDB + Gemini Embeddings
 - **Model**: `text-embedding-004`
 
@@ -314,9 +314,9 @@ User Input → ChatInput Component
 
 **Key Components:**
 - `useWebSocket.ts`: WebSocket lifecycle management
-- `ChatLayout.tsx`: Main container với session state
+- `ChatLayout.tsx`: Main container with session state
 - `TypingIndicator.tsx`: Real-time agent typing status
-- `ChatMessageList.tsx`: Message rendering với streaming effect
+- `ChatMessageList.tsx`: Message rendering with streaming effect
 
 #### **2. Share Conversation System**
 
@@ -334,12 +334,12 @@ Generate unique share URL
         ↓
 Public route: /share/[shareId]
         ↓
-Read-only view với message history
+Read-only view with message history
 ```
 
 **Components:**
-- `ShareDialog.tsx`: Modal để generate/revoke links
-- `SharedConversationsList.tsx`: Danh sách conversations đã share
+- `ShareDialog.tsx`: Modal to generate/revoke links
+- `SharedConversationsList.tsx`: List of shared conversations
 - `/share/[shareId]/page.tsx`: Public share viewer
 
 #### **3. Session Management**
@@ -423,7 +423,7 @@ SessionManager.unregister() on disconnect
 
 ### Prerequisites
 
-- **Node.js** 18+ và npm/yarn
+- **Node.js** 18+ and npm/yarn
 - **Python** 3.11+
 - **PostgreSQL** 16+
 - **Git**
@@ -473,7 +473,7 @@ python run.py
 uvicorn api.main:app --reload --port 8000
 ```
 
-Backend sẽ chạy tại: `http://localhost:8000`
+Backend will run at: `http://localhost:8000`
 
 WebSocket endpoint: `ws://localhost:8000/ws/chat`
 
@@ -501,7 +501,7 @@ npm run dev
 yarn dev
 ```
 
-Frontend sẽ chạy tại: `http://localhost:3000`
+Frontend will run at: `http://localhost:3000`
 
 ### 4️⃣ Database Setup
 
@@ -518,21 +518,21 @@ GRANT ALL PRIVILEGES ON DATABASE alphacode TO alphacode_user;
 
 ## 🎮 Usage
 
-### 1. Truy cập ứng dụng
+### 1. Access the Application
 
-Mở trình duyệt và truy cập: `http://localhost:3000`
+Open your browser and go to: `http://localhost:3000`
 
 ### 2. Login (Mock)
 
 - Email: `test@example.com`
-- Password: bất kỳ
+- Password: any password
 
-### 3. Bắt đầu Chat
+### 3. Start Chatting
 
-1. Click "New Chat" để tạo cuộc trò chuyện mới
-2. Nhập yêu cầu của bạn vào ô chat
-3. AI Agent sẽ phản hồi với typing indicator
-4. Lịch sử chat tự động lưu
+1. Click "New Chat" to create a new conversation
+2. Enter your requirements in the chat box
+3. AI Agent will respond with typing indicator
+4. Chat history is automatically saved
 
 ## 👥 Team
 
@@ -619,7 +619,7 @@ python fix_message_column.py
 
 #### 4. CORS Error
 
-Đảm bảo backend có CORS middleware:
+Ensure backend has CORS middleware:
 
 ```python
 # In api/main.py
@@ -680,14 +680,14 @@ alembic downgrade -1
 
 ## 🔮 Future Enhancements
 
-- [ ] User authentication với JWT
+- [ ] User authentication with JWT
 - [ ] File upload support
 - [ ] Voice input/output
 - [ ] Multi-language support
 - [ ] Export chat history to PDF
 - [ ] Advanced analytics dashboard
 - [ ] Team collaboration features
-- [ ] Integration với Jira/GitHub
+- [ ] Integration with Jira/GitHub
 - [ ] Mobile app (React Native)
 - [ ] Docker containerization
 

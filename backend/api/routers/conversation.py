@@ -18,9 +18,11 @@ router = APIRouter(
 @router.get("/user/{user_id}", response_model=List[Conversation])
 async def get_conversations_by_user(
     user_id: int,
+    skip: int = 0,
+    limit: int = 20,
     db: AsyncSession = Depends(get_session)
 ) -> List[Conversation]:
-    return await service.get_conversations_by_user_id(db, user_id)
+    return await service.get_conversations_by_user_id(db, user_id, skip=skip, limit=limit)
 
 @router.post("/", response_model=Conversation)
 async def create_conversation(

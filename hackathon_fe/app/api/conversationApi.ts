@@ -2,9 +2,11 @@ import axiosInstance from '@/app/lib/axios';
 import { Conversation } from '@/app/types/conversation';
 
 export const conversationApi = {
-  // GET /conversations/user/{user_id} - Get Conversations By User
-  getByUserId: async (userId: string): Promise<Conversation[]> => {
-    const response = await axiosInstance.get<Conversation[]>(`/conversations/user/${userId}`);
+  // GET /conversations/user/{user_id} - Get Conversations By User (with pagination)
+  getByUserId: async (userId: string, skip: number = 0, limit: number = 20): Promise<Conversation[]> => {
+    const response = await axiosInstance.get<Conversation[]>(`/conversations/user/${userId}`, {
+      params: { skip, limit }
+    });
     return response.data;
   },
   

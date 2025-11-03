@@ -21,11 +21,11 @@ class ConversationRepository:
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def get_conversation_by_user_id(self, db: AsyncSession, user_id: int) -> List[Conversation]:
+    async def get_conversation_by_user_id(self, db: AsyncSession, user_id: int, skip: int = 0, limit: int = 20) -> List[Conversation]:
         stmt = select(Conversation).where(
             Conversation.user_id == user_id,
             Conversation.status == 1  # Only active conversations
-        )
+        ).order_by(Conversation.created_at.desc()).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return result.scalars().all()
 
