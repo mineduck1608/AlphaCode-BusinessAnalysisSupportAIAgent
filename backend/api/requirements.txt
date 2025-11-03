@@ -21,6 +21,7 @@ boto3
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
+google-generativeai
 
 PyJWT
 passlib[bcrypt]
@@ -28,6 +29,8 @@ passlib[bcrypt]
 python-multipart
 
 pillow
+
+numpy
 opencv-python
 
 httpx
