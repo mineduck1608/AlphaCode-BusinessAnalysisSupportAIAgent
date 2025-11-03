@@ -7,12 +7,11 @@ export const conversationApi = {
     const response = await axiosInstance.get<Conversation[]>(`/conversations/user/${userId}`);
     return response.data;
   },
+  
 
   // POST /conversations/ - Create Conversation
   create: async (data: Partial<Conversation>): Promise<Conversation> => {
-    const response = await axiosInstance.post<Conversation>('/conversations/', undefined, {
-      params: data,
-    });
+    const response = await axiosInstance.post<Conversation>('/conversations/', data);
     return response.data;
   },
 

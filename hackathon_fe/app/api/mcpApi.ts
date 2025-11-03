@@ -33,19 +33,19 @@ async function post(path: string, body: any) {
 }
 
 export async function analyzeStories(stories: Story[]) {
-  return post("/mcp/analyze", { stories });
+  return post("mcp/analyze", { stories });
 }
 
 export async function extractAndPrioritize(stories: Story[]) {
-  return post("/mcp/requirements", { stories });
+  return post("mcp/requirements", { stories });
 }
 
 export async function buildReport(requirements: any[], project_id?: string) {
-  return post("/mcp/report", { requirements, project_id });
+  return post("mcp/report", { requirements, project_id });
 }
 
 export async function runPipeline(payload: { raw_text?: string; stories?: Story[]; project_id?: string }) {
-  return post("/mcp/pipeline", payload);
+  return post("mcp/pipeline", payload);
 }
 
 export default { analyzeStories, extractAndPrioritize, buildReport };
